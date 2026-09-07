@@ -65,6 +65,10 @@ export const AdminDashboard: React.FC = () => {
             o.id === msg.orderId ? { ...o, status: msg.status } : o
           ),
         }));
+      } else if (msg.type === 'ORDER_DELETED') {
+        useStore.setState((state) => ({
+          orders: state.orders.filter((o) => o.id !== msg.orderId),
+        }));
       } else if (msg.type === 'STOCK_UPDATE') {
         useStore.setState({
           ingredients: msg.ingredients,

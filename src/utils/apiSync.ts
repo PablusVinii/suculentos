@@ -94,6 +94,14 @@ class ServerSyncManager {
                 playNewOrderChime();
               }
             }
+          } else if (msg.type === 'ORDER_DELETED' && msg.orderId) {
+            const { orderId } = msg;
+            this.knownOrderIds.delete(orderId);
+            this.lastOrderStatusMap.delete(orderId);
+
+            useStore.setState((prev) => ({
+              orders: prev.orders.filter((o) => o.id !== orderId),
+            }));
           } else if (msg.type === 'STOCK_UPDATE' && msg.ingredients && msg.products) {
             useStore.setState({
               ingredients: msg.ingredients,
@@ -224,14 +232,9 @@ class ServerSyncManager {
             }
           });
 
-          // Atualiza o estado Zustand com os pedidos sincronizados preservando locais recentes
-          const finalOrders = [...serverOrders];
-          state.orders.forEach((lo) => {
-            if (!finalOrders.some((fo) => fo.id === lo.id)) {
-              finalOrders.push(lo);
-            }
-          });
-          useStore.setState({ orders: finalOrders });
+          // Atualiza o estado Zustand com os pedidos sincronizados do servidor
+          this.knownOrderIds = new Set(serverOrders.map((o) => o.id));
+          useStore.setState({ orders: serverOrders });
         }
       }
 

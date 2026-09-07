@@ -41,3 +41,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Falha ao criar pedido no servidor' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    let id = searchParams.get('id');
+
+    if (!id) {
+      try {
+        const body = await request.json();
+        id = body.id;
+      } catch (_) {}
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID do pedido é obrigatório' }, { status: 400 });
+    }
+
+    const deleted = await serverStorage.deleteOrder(id);
+    return NextResponse.json({ success: true, deleted, id });
+  } catch (err) {
+    console.error('Erro na rota DELETE /api/orders:', err);
+    return NextResponse.json({ error: 'Falha ao excluir pedido' }, { status: 500 });
+  }
+}

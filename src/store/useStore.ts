@@ -151,6 +151,7 @@ interface StoreState {
   }) => Order;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
+  deleteOrder: (orderId: string) => Promise<void>;
   addMyOrderCode: (code: string) => void;
 }
 
@@ -841,6 +842,31 @@ export const useStore = create<StoreState>()(
         }
 
         apiPatchOrderStatus(orderId, 'cancelado', targetOrder);
+      },
+
+      deleteOrder: async (orderId) => {
+        const { orders } = get();
+        const updated = orders.filter((ord) => ord.id !== orderId);
+        set({ orders: updated });
+
+        // 1. Sincroniza via BroadcastChannel local
+        syncManager.broadcast({
+          type: 'ORDER_DELETED',
+          orderId,
+        });
+
+        // 2. Sincroniza via Cloud PubSub
+        emitCloudRealtime({
+          type: 'ORDER_DELETED',
+          orderId,
+        });
+
+        // 3. Exclui no banco de dados na nuvem / Vercel DB
+        try {
+          await fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, {
+            method: 'DELETE',
+          });
+        } catch (_) {}
       },
 
       addMyOrderCode: (code) => {

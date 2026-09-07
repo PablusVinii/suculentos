@@ -3,7 +3,9 @@ import { Ingredient, Order, OrderStatus, Product } from '@/types';
 export type SyncMessage =
   | { type: 'NEW_ORDER'; order: Order }
   | { type: 'ORDER_STATUS_UPDATE'; orderId: string; status: OrderStatus; order?: Order }
-  | { type: 'STOCK_UPDATE'; ingredients: Ingredient[]; products: Product[] };
+  | { type: 'ORDER_DELETED'; orderId: string }
+  | { type: 'STOCK_UPDATE'; ingredients: Ingredient[]; products: Product[] }
+  | { type: 'USERS_UPDATE'; users: any[] };
 
 class CrossTabSyncManager {
   private channel: BroadcastChannel | null = null;

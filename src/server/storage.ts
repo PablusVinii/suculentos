@@ -304,6 +304,25 @@ export const serverStorage = {
     return updatedOrder;
   },
 
+  async deleteOrder(orderId: string): Promise<boolean> {
+    const db = await loadDatabaseAsync();
+    const initialCount = db.orders.length;
+    db.orders = db.orders.filter((o) => o.id !== orderId);
+    const wasDeleted = db.orders.length < initialCount;
+
+    if (wasDeleted) {
+      saveDatabase(db);
+
+      // Dispara broadcast em tempo real para remover a comanda de todos os dispositivos
+      broadcastRealtimeEvent({
+        type: 'ORDER_DELETED',
+        orderId,
+      });
+    }
+
+    return wasDeleted;
+  },
+
   // --- Estoque e Cardápio ---
   async getStock(): Promise<{ ingredients: Ingredient[]; products: Product[] }> {
     const db = await loadDatabaseAsync();

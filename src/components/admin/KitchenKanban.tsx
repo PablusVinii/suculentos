@@ -5,6 +5,7 @@ import { useStore } from '@/store/useStore';
 import { Order, OrderStatus } from '@/types';
 import { OrderCard } from './OrderCard';
 import { ThermalReceiptModal } from './ThermalReceiptModal';
+import { DeleteOrderConfirmModal } from './DeleteOrderConfirmModal';
 import {
   Clock,
   ChefHat,
@@ -17,12 +18,13 @@ import {
 } from 'lucide-react';
 
 export const KitchenKanban: React.FC = () => {
-  const { orders, updateOrderStatus, cancelOrder, createOrder, pastelSizes, ingredients, products } =
+  const { orders, updateOrderStatus, deleteOrder, cancelOrder, createOrder, pastelSizes, ingredients, products } =
     useStore();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showDelivered, setShowDelivered] = useState(false);
   const [selectedPrintOrder, setSelectedPrintOrder] = useState<Order | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
 
   // Filtragem por busca
   const filteredOrders = orders.filter(
@@ -165,6 +167,7 @@ export const KitchenKanban: React.FC = () => {
                   order={order}
                   onUpdateStatus={updateOrderStatus}
                   onCancel={cancelOrder}
+                  onDelete={(ord) => setOrderToDelete(ord)}
                   onPrint={(ord) => setSelectedPrintOrder(ord)}
                 />
               ))}
@@ -201,6 +204,7 @@ export const KitchenKanban: React.FC = () => {
                   order={order}
                   onUpdateStatus={updateOrderStatus}
                   onCancel={cancelOrder}
+                  onDelete={(ord) => setOrderToDelete(ord)}
                   onPrint={(ord) => setSelectedPrintOrder(ord)}
                 />
               ))}
@@ -237,6 +241,7 @@ export const KitchenKanban: React.FC = () => {
                   order={order}
                   onUpdateStatus={updateOrderStatus}
                   onCancel={cancelOrder}
+                  onDelete={(ord) => setOrderToDelete(ord)}
                   onPrint={(ord) => setSelectedPrintOrder(ord)}
                 />
               ))}
@@ -271,6 +276,7 @@ export const KitchenKanban: React.FC = () => {
                   order={order}
                   onUpdateStatus={updateOrderStatus}
                   onCancel={cancelOrder}
+                  onDelete={(ord) => setOrderToDelete(ord)}
                   onPrint={(ord) => setSelectedPrintOrder(ord)}
                 />
               ))}
@@ -283,6 +289,13 @@ export const KitchenKanban: React.FC = () => {
       <ThermalReceiptModal
         order={selectedPrintOrder}
         onClose={() => setSelectedPrintOrder(null)}
+      />
+
+      {/* Modal de Confirmação de Exclusão Irreversível */}
+      <DeleteOrderConfirmModal
+        order={orderToDelete}
+        onClose={() => setOrderToDelete(null)}
+        onConfirm={deleteOrder}
       />
     </div>
   );

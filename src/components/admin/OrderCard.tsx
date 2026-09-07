@@ -20,12 +20,14 @@ import {
   MapPin,
   User,
   Phone,
+  Trash2,
 } from 'lucide-react';
 
 interface OrderCardProps {
   order: Order;
   onUpdateStatus: (orderId: string, status: OrderStatus) => void;
-  onCancel: (orderId: string) => void;
+  onCancel?: (orderId: string) => void;
+  onDelete?: (order: Order) => void;
   onPrint: (order: Order) => void;
 }
 
@@ -33,6 +35,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
   order,
   onUpdateStatus,
   onCancel,
+  onDelete,
   onPrint,
 }) => {
   const elapsed = getElapsedMinutes(order.createdAt);
@@ -326,7 +329,18 @@ export const OrderCard: React.FC<OrderCardProps> = ({
             </span>
           )}
 
-          {order.status !== 'entregue' && order.status !== 'cancelado' && (
+          {/* Botão de Excluir Pedido com Confirmação */}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(order)}
+              className="p-2 rounded-xl text-stone-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Excluir pedido permanentemente"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {!onDelete && onCancel && order.status !== 'entregue' && order.status !== 'cancelado' && (
             <button
               onClick={() => onCancel(order.id)}
               className="p-2 rounded-xl text-stone-300 hover:text-red-600 hover:bg-red-50 transition-colors"
