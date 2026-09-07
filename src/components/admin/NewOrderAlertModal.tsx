@@ -133,11 +133,11 @@ export const NewOrderAlertModal: React.FC<NewOrderAlertModalProps> = ({ onOpenRe
           <div className="space-y-2">
             <span className="text-xs font-extrabold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
               <Flame className="w-4 h-4 text-orange-600" />
-              <span>Itens para Preparar ({order.items.reduce((a, b) => a + b.quantity, 0)}):</span>
+              <span>Itens para Preparar ({(order.items || []).reduce((a, b) => a + (b.quantity || 1), 0)}):</span>
             </span>
 
             <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-              {order.items.map((item, idx) => {
+              {(order.items || []).map((item, idx) => {
                 const isCustom = item.type === 'custom_pastel' && item.pastelDetails;
                 return (
                   <div
@@ -148,15 +148,15 @@ export const NewOrderAlertModal: React.FC<NewOrderAlertModalProps> = ({ onOpenRe
                       <span>
                         {item.quantity}x{' '}
                         {isCustom
-                          ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size.name})`
-                          : item.product?.name}
+                          ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size?.name || 'Pastel'})`
+                          : item.product?.name || 'Produto'}
                       </span>
-                      <span className="text-stone-500">{formatCurrency(item.totalPrice)}</span>
+                      <span className="text-stone-500">{formatCurrency(item.totalPrice || 0)}</span>
                     </div>
 
                     {isCustom && item.pastelDetails && (
                       <div className="flex flex-wrap gap-1 pt-1">
-                        {item.pastelDetails.flavors.map((f) => (
+                        {(item.pastelDetails.flavors || []).map((f) => (
                           <span
                             key={f.id}
                             className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 font-bold text-[10px]"

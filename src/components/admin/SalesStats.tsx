@@ -33,11 +33,13 @@ export const SalesStats: React.FC = () => {
 
   // Contagem de sabores mais pedidos
   const flavorCounts: Record<string, number> = {};
-  orders.forEach((order) => {
-    order.items.forEach((item) => {
+  (orders || []).forEach((order) => {
+    (order.items || []).forEach((item) => {
       if (item.type === 'custom_pastel' && item.pastelDetails) {
-        item.pastelDetails.flavors.forEach((flavor) => {
-          flavorCounts[flavor.name] = (flavorCounts[flavor.name] || 0) + item.quantity;
+        (item.pastelDetails.flavors || []).forEach((flavor) => {
+          if (flavor && flavor.name) {
+            flavorCounts[flavor.name] = (flavorCounts[flavor.name] || 0) + (item.quantity || 1);
+          }
         });
       }
     });

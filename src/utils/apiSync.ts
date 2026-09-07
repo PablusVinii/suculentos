@@ -145,15 +145,22 @@ class ServerSyncManager {
       }
 
       const {
-        orders: serverOrders,
+        orders: rawServerOrders,
         ingredients: serverIngs,
         products: serverProds,
         users: serverUsers,
       } = data;
 
+      const serverOrders: Order[] = Array.isArray(rawServerOrders)
+        ? rawServerOrders.map((o: any) => ({
+            ...o,
+            items: Array.isArray(o.items) ? o.items : [],
+          }))
+        : [];
+
       const state = useStore.getState();
 
-      if (Array.isArray(serverOrders)) {
+      if (serverOrders.length > 0 || Array.isArray(rawServerOrders)) {
         if (!this.initialized) {
           // Primeira carga: registra os IDs conhecidos
           serverOrders.forEach((o) => {

@@ -167,10 +167,10 @@ export const MyOrdersTab: React.FC = () => {
         {/* Detalhamento dos Itens do Pedido */}
         <div className="space-y-2 pt-2 border-t border-stone-100">
           <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
-            Itens do seu Pedido ({order.items.reduce((a, b) => a + b.quantity, 0)} itens):
+            Itens do seu Pedido ({(order.items || []).reduce((a, b) => a + (b.quantity || 1), 0)} itens):
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {order.items.map((item, idx) => {
+            {(order.items || []).map((item, idx) => {
               const isCustom = item.type === 'custom_pastel' && item.pastelDetails;
               return (
                 <div
@@ -181,28 +181,28 @@ export const MyOrdersTab: React.FC = () => {
                     <span>
                       {item.quantity}x{' '}
                       {isCustom
-                        ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size.name})`
-                        : item.product?.name}
+                        ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size?.name || 'Pastel'})`
+                        : item.product?.name || 'Produto'}
                     </span>
-                    <span>{formatCurrency(item.totalPrice)}</span>
+                    <span>{formatCurrency(item.totalPrice || 0)}</span>
                   </div>
 
                   {isCustom && item.pastelDetails && (
                     <div className="text-[11px] text-stone-600 space-y-0.5 pt-1 border-t border-stone-200/50">
                       <div>
                         <strong>Sabores:</strong>{' '}
-                        {item.pastelDetails.flavors.map((f) => f.name).join(', ')}
+                        {(item.pastelDetails.flavors || []).map((f) => f.name).join(', ')}
                       </div>
-                      {item.pastelDetails.complements.length > 0 && (
+                      {(item.pastelDetails.complements || []).length > 0 && (
                         <div>
                           <strong>Comp:</strong>{' '}
-                          {item.pastelDetails.complements.map((c) => c.name).join(', ')}
+                          {(item.pastelDetails.complements || []).map((c) => c.name).join(', ')}
                         </div>
                       )}
-                      {item.pastelDetails.sauces.length > 0 && (
+                      {(item.pastelDetails.sauces || []).length > 0 && (
                         <div>
                           <strong>Molhos:</strong>{' '}
-                          {item.pastelDetails.sauces.map((s) => s.name).join(', ')}
+                          {(item.pastelDetails.sauces || []).map((s) => s.name).join(', ')}
                         </div>
                       )}
                     </div>

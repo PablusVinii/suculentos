@@ -106,7 +106,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
       {/* Corpo com Detalhamento dos Itens & Tags Visuais */}
       <div className="p-4 space-y-3 flex-1">
-        {order.items.map((item, idx) => {
+        {(order.items || []).map((item, idx) => {
           const isCustom = item.type === 'custom_pastel' && item.pastelDetails;
 
           return (
@@ -119,39 +119,41 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   <span className="text-amber-600 font-black">{item.quantity}x</span>
                   <span>
                     {isCustom
-                      ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size.name})`
-                      : item.product?.name}
+                      ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size?.name || 'Pastel'})`
+                      : item.product?.name || 'Produto'}
                   </span>
                 </span>
                 <span className="text-stone-500 font-semibold text-xs">
-                  {formatCurrency(item.totalPrice)}
+                  {formatCurrency(item.totalPrice || 0)}
                 </span>
               </div>
 
               {isCustom && item.pastelDetails && (
                 <div className="space-y-1.5 pt-1 border-t border-stone-200/60">
                   {/* Sabores */}
-                  <div className="flex flex-wrap items-center gap-1">
-                    <span className="text-[10px] font-black uppercase text-red-700 bg-red-50 px-1 rounded">
-                      Sabores:
-                    </span>
-                    {item.pastelDetails.flavors.map((f) => (
-                      <span
-                        key={f.id}
-                        className="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500 text-white shadow-2xs"
-                      >
-                        {f.name}
+                  {(item.pastelDetails.flavors || []).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="text-[10px] font-black uppercase text-red-700 bg-red-50 px-1 rounded">
+                        Sabores:
                       </span>
-                    ))}
-                  </div>
+                      {(item.pastelDetails.flavors || []).map((f) => (
+                        <span
+                          key={f.id}
+                          className="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500 text-white shadow-2xs"
+                        >
+                          {f.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Complementos */}
-                  {item.pastelDetails.complements.length > 0 && (
+                  {(item.pastelDetails.complements || []).length > 0 && (
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-[10px] font-black uppercase text-emerald-700 bg-emerald-50 px-1 rounded">
                         Comp.:
                       </span>
-                      {item.pastelDetails.complements.map((c) => (
+                      {(item.pastelDetails.complements || []).map((c) => (
                         <span
                           key={c.id}
                           className="px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-2xs"
@@ -163,12 +165,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   )}
 
                   {/* Molhos */}
-                  {item.pastelDetails.sauces.length > 0 && (
+                  {(item.pastelDetails.sauces || []).length > 0 && (
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="text-[10px] font-black uppercase text-orange-700 bg-orange-50 px-1 rounded">
                         Molhos:
                       </span>
-                      {item.pastelDetails.sauces.map((s) => (
+                      {(item.pastelDetails.sauces || []).map((s) => (
                         <span
                           key={s.id}
                           className="px-2 py-0.5 rounded-lg text-xs font-bold bg-orange-500 text-white shadow-2xs"

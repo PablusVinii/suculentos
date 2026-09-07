@@ -78,16 +78,16 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({ order,
               <span>TOTAL</span>
             </div>
 
-            {order.items.map((item, index) => (
+            {(order.items || []).map((item, index) => (
               <div key={item.id || index} className="space-y-1">
                 <div className="flex justify-between font-bold">
                   <span>
                     {item.quantity}x{' '}
                     {item.type === 'custom_pastel'
-                      ? `${(item.pastelDetails?.recipientLabel || `PASTEL #${index + 1}`).toUpperCase()} (${item.pastelDetails?.size.name.toUpperCase()})`
-                      : item.product?.name.toUpperCase()}
+                      ? `${(item.pastelDetails?.recipientLabel || `PASTEL #${index + 1}`).toUpperCase()} (${(item.pastelDetails?.size?.name || 'PASTEL').toUpperCase()})`
+                      : (item.product?.name || 'PRODUTO').toUpperCase()}
                   </span>
-                  <span>{formatCurrency(item.totalPrice)}</span>
+                  <span>{formatCurrency(item.totalPrice || 0)}</span>
                 </div>
 
                 {/* Se for Pastel Personalizado */}
@@ -95,18 +95,18 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({ order,
                   <div className="pl-2 border-l-2 border-stone-300 space-y-0.5 text-[10px] text-stone-700">
                     <div>
                       <strong>SABORES:</strong>{' '}
-                      {item.pastelDetails.flavors.map((f) => f.name).join(', ')}
+                      {(item.pastelDetails.flavors || []).map((f) => f.name).join(', ')}
                     </div>
-                    {item.pastelDetails.complements.length > 0 && (
+                    {(item.pastelDetails.complements || []).length > 0 && (
                       <div>
                         <strong>COMPL.:</strong>{' '}
-                        {item.pastelDetails.complements.map((c) => c.name).join(', ')}
+                        {(item.pastelDetails.complements || []).map((c) => c.name).join(', ')}
                       </div>
                     )}
-                    {item.pastelDetails.sauces.length > 0 && (
+                    {(item.pastelDetails.sauces || []).length > 0 && (
                       <div>
                         <strong>MOLHOS:</strong>{' '}
-                        {item.pastelDetails.sauces.map((s) => s.name).join(', ')}
+                        {(item.pastelDetails.sauces || []).map((s) => s.name).join(', ')}
                       </div>
                     )}
                     {item.pastelDetails.notes && (

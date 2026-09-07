@@ -75,9 +75,28 @@ const DB_FILE_PATH = path.join(
   'suculentos_db_prod_v3.json'
 );
 
+function sanitizeOrder(o: any): Order {
+  return {
+    id: o.id || `PED-${Math.floor(100000 + Math.random() * 900000)}`,
+    trackingCode: o.trackingCode || o.shortCode?.toString() || '000000',
+    shortCode: o.shortCode || o.trackingCode || '000000',
+    createdAt: o.createdAt || new Date().toISOString(),
+    customerName: o.customerName || 'Cliente',
+    orderType: o.orderType || 'balcao',
+    tableNumber: o.tableNumber,
+    items: Array.isArray(o.items) ? o.items : [],
+    totalAmount: typeof o.totalAmount === 'number' ? o.totalAmount : 0,
+    paymentMethod: o.paymentMethod || 'pix',
+    changeFor: o.changeFor,
+    changeAmount: o.changeAmount,
+    status: o.status || 'novo',
+    notes: o.notes,
+  };
+}
+
 function getInitialDatabase(): ServerDatabase {
   return {
-    orders: INITIAL_ORDERS,
+    orders: INITIAL_ORDERS.map(sanitizeOrder),
     ingredients: ALL_INITIAL_INGREDIENTS,
     products: INITIAL_PRODUCTS,
     users: DEFAULT_ADMIN_USERS,
@@ -102,10 +121,9 @@ async function broadcastRealtimeEvent(payload: Record<string, any>) {
   }
 }
 
-// Carrega dados da Nuvem Master (Vercel Serverless Multi-Instance Sync)
+// Carrega dados da Nuvem (Vercel KV / Upstash Redis se configurado, ou /tmp local)
 async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
   try {
-    // Se Upstash Redis / Vercel KV estiver configurado via variáveis de ambiente
     const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
     const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
     if (kvUrl && kvToken) {
@@ -118,33 +136,21 @@ async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
         if (kvData && kvData.result) {
           const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
           if (parsed && Array.isArray(parsed.orders)) {
+            parsed.orders = parsed.orders.map(sanitizeOrder);
             return parsed as ServerDatabase;
           }
         }
       }
     }
-
-    // Cloud Master Store padrão (zero configuração necessária)
-    const res = await fetch(MASTER_CLOUD_DB_URL, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' },
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.data && Array.isArray(json.data.orders)) {
-        return json.data as ServerDatabase;
-      }
-    }
   } catch (err) {
-    console.warn('Aviso: Falha ao buscar banco da nuvem, usando cache local:', err);
+    console.warn('Aviso: Falha ao buscar banco KV:', err);
   }
   return null;
 }
 
-// Salva dados na Nuvem Master
+// Salva dados na Nuvem KV se configurado
 async function persistCloudDatabase(db: ServerDatabase): Promise<void> {
   try {
-    // 1. Upstash Redis / Vercel KV se configurado
     const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
     const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
     if (kvUrl && kvToken) {
@@ -157,57 +163,44 @@ async function persistCloudDatabase(db: ServerDatabase): Promise<void> {
         body: JSON.stringify(db),
       }).catch(() => {});
     }
-
-    // 2. Cloud Master Store
-    await fetch(MASTER_CLOUD_DB_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'suculentos_pastelaria_database_prod',
-        data: db,
-      }),
-    });
-  } catch (err) {
-    console.warn('Aviso: Falha ao persistir na nuvem master:', err);
-  }
+  } catch (_) {}
 }
 
 async function loadDatabaseAsync(): Promise<ServerDatabase> {
   const now = Date.now();
   const lastFetch = global.__suculentos_last_fetch || 0;
 
-  // Revalida a cada 2 segundos no serverless para sincronizar entre diferentes Lambdas
   if (global.__suculentos_db && now - lastFetch < 2000) {
     return global.__suculentos_db;
   }
 
-  // Tenta carregar da nuvem
+  // Tenta carregar do KV se existir
   const cloudData = await fetchCloudDatabase();
   if (cloudData && Array.isArray(cloudData.orders)) {
     global.__suculentos_db = cloudData;
     global.__suculentos_last_fetch = now;
-    // Salva localmente em /tmp também
     try {
       fs.writeFileSync(DB_FILE_PATH, JSON.stringify(cloudData, null, 2), 'utf-8');
     } catch (_) {}
     return cloudData;
   }
 
-  // Se a nuvem falhou ou está vazia, tenta o /tmp local
-  if (global.__suculentos_db) {
-    return global.__suculentos_db;
-  }
-
+  // Tenta carregar de /tmp
   try {
     if (fs.existsSync(DB_FILE_PATH)) {
       const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(raw) as ServerDatabase;
       if (parsed && Array.isArray(parsed.orders)) {
+        parsed.orders = parsed.orders.map(sanitizeOrder);
         global.__suculentos_db = parsed;
         return parsed;
       }
     }
   } catch (err) {}
+
+  if (global.__suculentos_db) {
+    return global.__suculentos_db;
+  }
 
   // Fallback para inicial
   const initial = getInitialDatabase();
@@ -219,6 +212,7 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
 
 function saveDatabase(db: ServerDatabase): void {
   db.lastUpdated = new Date().toISOString();
+  db.orders = db.orders.map(sanitizeOrder);
   global.__suculentos_db = db;
   global.__suculentos_last_fetch = Date.now();
 
