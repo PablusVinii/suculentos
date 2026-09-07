@@ -19,6 +19,7 @@ import {
 } from '@/data/mockData';
 import { playNewOrderChime } from '@/utils/audio';
 import { syncManager } from '@/utils/sync';
+import { serverSync } from '@/utils/apiSync';
 
 export const DEFAULT_ADMIN_USERS: AdminUser[] = [
   {
@@ -165,21 +166,35 @@ function generate6DigitCode(): string {
 
 function apiPostOrder(order: Order) {
   if (typeof window !== 'undefined') {
+    // 1. Envia para a rota de API do Next.js
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(order),
     }).catch((e) => console.warn('Failed to sync order to server:', e));
+
+    // 2. Dispara notificação instantânea para o canal de SSE da nuvem
+    serverSync.emitRealtimeEvent({
+      type: 'NEW_ORDER',
+      order,
+    });
   }
 }
 
-function apiPatchOrderStatus(orderId: string, status: OrderStatus) {
+function apiPatchOrderStatus(orderId: string, status: OrderStatus, order?: Order) {
   if (typeof window !== 'undefined') {
     fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     }).catch((e) => console.warn('Failed to sync status to server:', e));
+
+    serverSync.emitRealtimeEvent({
+      type: 'ORDER_STATUS_UPDATE',
+      orderId,
+      status,
+      order,
+    });
   }
 }
 
@@ -190,6 +205,12 @@ function apiPutStock(ingredients: Ingredient[], products: Product[]) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ingredients, products }),
     }).catch((e) => console.warn('Failed to sync stock to server:', e));
+
+    serverSync.emitRealtimeEvent({
+      type: 'STOCK_UPDATE',
+      ingredients,
+      products,
+    });
   }
 }
 
@@ -200,6 +221,11 @@ function apiPutUsers(users: AdminUser[]) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ users }),
     }).catch((e) => console.warn('Failed to sync users to server:', e));
+
+    serverSync.emitRealtimeEvent({
+      type: 'USERS_UPDATE',
+      users,
+    });
   }
 }
 
@@ -778,7 +804,7 @@ export const useStore = create<StoreState>()(
         }
 
         // 2. Sincroniza com o servidor na nuvem
-        apiPatchOrderStatus(orderId, status);
+        apiPatchOrderStatus(orderId, status, targetOrder);
       },
 
       cancelOrder: (orderId) => {
@@ -799,7 +825,7 @@ export const useStore = create<StoreState>()(
           });
         }
 
-        apiPatchOrderStatus(orderId, 'cancelado');
+        apiPatchOrderStatus(orderId, 'cancelado', targetOrder);
       },
 
       addMyOrderCode: (code) => {

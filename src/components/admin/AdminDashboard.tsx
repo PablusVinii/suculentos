@@ -102,12 +102,13 @@ export const AdminDashboard: React.FC = () => {
                   <h1 className="text-xl font-black tracking-tight font-display text-amber-400">
                     Suculentos Admin
                   </h1>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Ao Vivo 🔴
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Nuvem em Tempo Real
                   </span>
                 </div>
                 <p className="text-xs text-stone-400">
-                  {adminUser?.name || 'Gerência / Cozinha'} • Painel Sincronizado
+                  {adminUser?.name || 'Gerência / Cozinha'} • Sincronização Multi-Aparelhos Ativa
                 </p>
               </div>
             </div>
