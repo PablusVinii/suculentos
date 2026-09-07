@@ -965,8 +965,26 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: 'suculentos-storage-v6',
+      name: 'suculentos-storage-v8',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state && Array.isArray(state.orders)) {
+          const testNames = ['rodrigo medeiros', 'mariana castro', 'gabriel fonseca', 'cliente teste', 'teste cloud'];
+          const testIds = ['ped-481920', 'ped-925104', 'ped-734812', 'ped-461124', 'ped-test1', '481920', '925104', '734812'];
+
+          state.orders = state.orders.filter((o) => {
+            if (!o) return false;
+            const name = (o.customerName || '').toLowerCase().trim();
+            const id = (o.id || '').toLowerCase().trim();
+            const tracking = (o.trackingCode || '').toLowerCase().trim();
+            const short = (o.shortCode ? o.shortCode.toString() : '').toLowerCase().trim();
+
+            if (testNames.some((tn) => name.includes(tn))) return false;
+            if (testIds.includes(id) || testIds.includes(tracking) || testIds.includes(short)) return false;
+            return true;
+          });
+        }
+      },
       partialize: (state) => ({
         isAdminAuthenticated: state.isAdminAuthenticated,
         adminUser: state.adminUser,

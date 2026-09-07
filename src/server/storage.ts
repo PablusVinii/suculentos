@@ -78,6 +78,21 @@ const DB_FILE_PATH = path.join(
   'suculentos_db_prod_v3.json'
 );
 
+const TEST_NAMES = ['rodrigo medeiros', 'mariana castro', 'gabriel fonseca', 'cliente teste', 'teste cloud'];
+const TEST_IDS = ['ped-481920', 'ped-925104', 'ped-734812', 'ped-461124', 'ped-test1', '481920', '925104', '734812'];
+
+function isTestOrder(o: any): boolean {
+  if (!o) return true;
+  const name = (o.customerName || '').toLowerCase().trim();
+  const id = (o.id || '').toLowerCase().trim();
+  const tracking = (o.trackingCode || '').toLowerCase().trim();
+  const short = (o.shortCode ? o.shortCode.toString() : '').toLowerCase().trim();
+
+  if (TEST_NAMES.some((tn) => name.includes(tn))) return true;
+  if (TEST_IDS.includes(id) || TEST_IDS.includes(tracking) || TEST_IDS.includes(short)) return true;
+  return false;
+}
+
 function sanitizeOrder(o: any): Order {
   return {
     id: o.id || `PED-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -111,7 +126,7 @@ function sanitizeOrder(o: any): Order {
 
 function getInitialDatabase(): ServerDatabase {
   return {
-    orders: INITIAL_ORDERS.map(sanitizeOrder),
+    orders: [],
     ingredients: ALL_INITIAL_INGREDIENTS,
     products: INITIAL_PRODUCTS,
     users: DEFAULT_ADMIN_USERS,
@@ -152,7 +167,7 @@ async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
         if (kvData && kvData.result) {
           const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
           if (parsed && Array.isArray(parsed.orders)) {
-            parsed.orders = parsed.orders.map(sanitizeOrder);
+            parsed.orders = parsed.orders.filter((o: any) => !isTestOrder(o)).map(sanitizeOrder);
             if (!parsed.pixConfig) {
               parsed.pixConfig = INITIAL_PIX_CONFIG;
             }
@@ -196,6 +211,7 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
   // Tenta carregar do KV se existir
   const cloudData = await fetchCloudDatabase();
   if (cloudData && Array.isArray(cloudData.orders)) {
+    cloudData.orders = cloudData.orders.filter((o) => !isTestOrder(o));
     if (!cloudData.pixConfig) {
       cloudData.pixConfig = INITIAL_PIX_CONFIG;
     }
@@ -213,7 +229,7 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
       const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(raw) as ServerDatabase;
       if (parsed && Array.isArray(parsed.orders)) {
-        parsed.orders = parsed.orders.map(sanitizeOrder);
+        parsed.orders = parsed.orders.filter((o) => !isTestOrder(o)).map(sanitizeOrder);
         if (!parsed.pixConfig) {
           parsed.pixConfig = INITIAL_PIX_CONFIG;
         }
@@ -224,6 +240,7 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
   } catch (err) {}
 
   if (global.__suculentos_db) {
+    global.__suculentos_db.orders = (global.__suculentos_db.orders || []).filter((o) => !isTestOrder(o));
     if (!global.__suculentos_db.pixConfig) {
       global.__suculentos_db.pixConfig = INITIAL_PIX_CONFIG;
     }
@@ -240,7 +257,7 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
 
 function saveDatabase(db: ServerDatabase): void {
   db.lastUpdated = new Date().toISOString();
-  db.orders = db.orders.map(sanitizeOrder);
+  db.orders = (db.orders || []).filter((o) => !isTestOrder(o)).map(sanitizeOrder);
   global.__suculentos_db = db;
   global.__suculentos_last_fetch = Date.now();
 
