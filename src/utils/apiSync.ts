@@ -243,18 +243,40 @@ class ServerSyncManager {
       }
 
       if (Array.isArray(serverIngs) && Array.isArray(serverProds)) {
-        useStore.setState({
-          ingredients: serverIngs,
-          products: serverProds,
-        });
+        const currentIngs = state.ingredients;
+        const currentProds = state.products;
+        if (
+          JSON.stringify(currentIngs) !== JSON.stringify(serverIngs) ||
+          JSON.stringify(currentProds) !== JSON.stringify(serverProds)
+        ) {
+          useStore.setState({
+            ingredients: serverIngs,
+            products: serverProds,
+          });
+        }
       }
 
       if (Array.isArray(serverUsers) && serverUsers.length > 0) {
-        useStore.setState({ adminUsers: serverUsers });
+        const currentUsers = state.adminUsers;
+        if (JSON.stringify(currentUsers) !== JSON.stringify(serverUsers)) {
+          useStore.setState({ adminUsers: serverUsers });
+        }
       }
 
       if (data.pixConfig && typeof data.pixConfig.key === 'string') {
-        useStore.setState({ pixConfig: data.pixConfig });
+        const currentPix = state.pixConfig;
+        const isPixChanged =
+          !currentPix ||
+          currentPix.key !== data.pixConfig.key ||
+          currentPix.keyType !== data.pixConfig.keyType ||
+          currentPix.receiverName !== data.pixConfig.receiverName ||
+          currentPix.city !== data.pixConfig.city ||
+          currentPix.instructions !== data.pixConfig.instructions ||
+          (data.pixConfig.updatedAt && data.pixConfig.updatedAt !== currentPix.updatedAt);
+
+        if (isPixChanged) {
+          useStore.setState({ pixConfig: data.pixConfig });
+        }
       }
     } catch (err) {
       // Falha silenciosa de rede com nova tentativa no próximo ciclo

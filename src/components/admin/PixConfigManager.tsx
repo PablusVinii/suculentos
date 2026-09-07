@@ -35,24 +35,34 @@ const KEY_TYPES: { id: PixKeyType; label: string; icon: React.ElementType; place
 export const PixConfigManager: React.FC = () => {
   const { pixConfig, updatePixConfig, resetPixConfigToDefault, showToast } = useStore();
 
-  const [keyType, setKeyType] = useState<PixKeyType>(pixConfig.keyType || 'email');
-  const [key, setKey] = useState(pixConfig.key || '');
-  const [receiverName, setReceiverName] = useState(pixConfig.receiverName || '');
-  const [city, setCity] = useState(pixConfig.city || '');
-  const [instructions, setInstructions] = useState(pixConfig.instructions || '');
+  const [keyType, setKeyType] = useState<PixKeyType>(pixConfig?.keyType || 'email');
+  const [key, setKey] = useState(pixConfig?.key || '');
+  const [receiverName, setReceiverName] = useState(pixConfig?.receiverName || '');
+  const [city, setCity] = useState(pixConfig?.city || '');
+  const [instructions, setInstructions] = useState(pixConfig?.instructions || '');
 
+  const [isDirty, setIsDirty] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [previewCopied, setPreviewCopied] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
 
-  // Sincroniza o estado local caso a configuração mude remotamente
+  const lastLoadedUpdatedAt = React.useRef(pixConfig?.updatedAt);
+
+  // Sincroniza o formulário apenas quando houver mudança externa e o usuário NÃO estiver digitando
   useEffect(() => {
-    setKeyType(pixConfig.keyType || 'email');
-    setKey(pixConfig.key || '');
-    setReceiverName(pixConfig.receiverName || '');
-    setCity(pixConfig.city || '');
-    setInstructions(pixConfig.instructions || '');
-  }, [pixConfig]);
+    const isExternalUpdate = pixConfig?.updatedAt && pixConfig.updatedAt !== lastLoadedUpdatedAt.current;
+    if (!isDirty || isExternalUpdate) {
+      setKeyType(pixConfig?.keyType || 'email');
+      setKey(pixConfig?.key || '');
+      setReceiverName(pixConfig?.receiverName || '');
+      setCity(pixConfig?.city || '');
+      setInstructions(pixConfig?.instructions || '');
+      lastLoadedUpdatedAt.current = pixConfig?.updatedAt;
+      if (isExternalUpdate) {
+        setIsDirty(false);
+      }
+    }
+  }, [pixConfig, isDirty]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,15 +77,18 @@ export const PixConfigManager: React.FC = () => {
       return;
     }
 
+    const nowIso = new Date().toISOString();
     const newConfig: PixConfig = {
       key: key.trim(),
       keyType,
       receiverName: receiverName.trim(),
       city: city.trim() || undefined,
       instructions: instructions.trim() || undefined,
-      updatedAt: new Date().toISOString(),
+      updatedAt: nowIso,
     };
 
+    lastLoadedUpdatedAt.current = nowIso;
+    setIsDirty(false);
     updatePixConfig(newConfig);
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2500);
@@ -94,6 +107,7 @@ export const PixConfigManager: React.FC = () => {
 
   const handleConfirmRestore = () => {
     resetPixConfigToDefault();
+    setIsDirty(false);
     setShowRestoreModal(false);
   };
 
@@ -154,7 +168,10 @@ export const PixConfigManager: React.FC = () => {
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => setKeyType(item.id)}
+                      onClick={() => {
+                        setKeyType(item.id);
+                        setIsDirty(true);
+                      }}
                       className={`flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border text-xs font-bold transition-all ${
                         isSelected
                           ? 'border-amber-500 bg-amber-500/10 text-amber-900 ring-2 ring-amber-500/30 font-black scale-[1.02]'
@@ -185,7 +202,10 @@ export const PixConfigManager: React.FC = () => {
                   type="text"
                   required
                   value={key}
-                  onChange={(e) => setKey(e.target.value)}
+                  onChange={(e) => {
+                    setKey(e.target.value);
+                    setIsDirty(true);
+                  }}
                   placeholder={activeTypeObj.placeholder}
                   className="w-full px-4 py-3.5 rounded-2xl border border-stone-200 bg-stone-50 text-stone-900 font-mono text-sm focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all outline-none"
                 />
@@ -209,7 +229,10 @@ export const PixConfigManager: React.FC = () => {
                 type="text"
                 required
                 value={receiverName}
-                onChange={(e) => setReceiverName(e.target.value)}
+                onChange={(e) => {
+                  setReceiverName(e.target.value);
+                  setIsDirty(true);
+                }}
                 placeholder="Ex: Suculentos Pastelaria LTDA ou Seu Nome"
                 className="w-full px-4 py-3 rounded-2xl border border-stone-200 bg-stone-50 text-stone-900 text-sm focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all outline-none"
               />
@@ -224,7 +247,10 @@ export const PixConfigManager: React.FC = () => {
                 <input
                   type="text"
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={(e) => {
+                    setCity(e.target.value);
+                    setIsDirty(true);
+                  }}
                   placeholder="Ex: São Paulo"
                   className="w-full px-4 py-3 rounded-2xl border border-stone-200 bg-stone-50 text-stone-900 text-sm focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all outline-none"
                 />
@@ -250,7 +276,10 @@ export const PixConfigManager: React.FC = () => {
               <textarea
                 rows={2}
                 value={instructions}
-                onChange={(e) => setInstructions(e.target.value)}
+                onChange={(e) => {
+                  setInstructions(e.target.value);
+                  setIsDirty(true);
+                }}
                 placeholder="Ex: Envie o comprovante pelo WhatsApp ou apresente ao entregador."
                 className="w-full px-4 py-3 rounded-2xl border border-stone-200 bg-stone-50 text-stone-900 text-xs focus:bg-white focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10 transition-all outline-none resize-none"
               />
