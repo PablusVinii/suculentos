@@ -21,6 +21,7 @@ import {
   Copy,
   Check,
   QrCode,
+  Truck,
 } from 'lucide-react';
 
 export const MyOrdersTab: React.FC = () => {
@@ -32,7 +33,7 @@ export const MyOrdersTab: React.FC = () => {
 
   // Pedidos deste cliente salvos na sessão/dispositivo local
   const mySavedOrders = (orders || []).filter((o) =>
-    myOrderCodes.includes(o.trackingCode || o.shortCode.toString())
+    myOrderCodes.includes(o.trackingCode || (o.shortCode ? o.shortCode.toString() : ''))
   );
 
   // Pedido pesquisado dinâmico e reativo a atualizações em tempo real
@@ -40,8 +41,9 @@ export const MyOrdersTab: React.FC = () => {
     ? (orders || []).find(
         (o) =>
           (o.trackingCode && o.trackingCode === searchedCode) ||
-          o.shortCode.toString() === searchedCode ||
-          o.id === `PED-${searchedCode}`
+          (o.shortCode && o.shortCode.toString() === searchedCode) ||
+          o.id === `PED-${searchedCode}` ||
+          o.id === searchedCode
       ) || null
     : null;
 
@@ -56,12 +58,13 @@ export const MyOrdersTab: React.FC = () => {
     const found = (orders || []).find(
       (o) =>
         (o.trackingCode && o.trackingCode === cleanCode) ||
-        o.shortCode.toString() === cleanCode ||
-        o.id === `PED-${cleanCode}`
+        (o.shortCode && o.shortCode.toString() === cleanCode) ||
+        o.id === `PED-${cleanCode}` ||
+        o.id === cleanCode
     );
 
     if (found) {
-      addMyOrderCode(found.trackingCode || found.shortCode.toString());
+      addMyOrderCode(found.trackingCode || (found.shortCode ? found.shortCode.toString() : ''));
     }
   };
 
@@ -182,6 +185,11 @@ export const MyOrdersTab: React.FC = () => {
                 <strong>Detalhes da casa:</strong> {order.deliveryDetails.houseDetails}
               </p>
             )}
+            {order.deliveryDetails.referencePoint && (
+              <p className="text-[11px] text-stone-600">
+                <strong>Ponto de referência:</strong> {order.deliveryDetails.referencePoint}
+              </p>
+            )}
             <p className="text-[11px] text-stone-700">
               <strong>Procurar por:</strong> {order.deliveryDetails.contactPerson}
               {order.deliveryDetails.contactPhone && ` • Tel: ${order.deliveryDetails.contactPhone}`}
@@ -247,6 +255,11 @@ export const MyOrdersTab: React.FC = () => {
                           {(item.pastelDetails.sauces || []).map((s) => s.name).join(', ')}
                         </div>
                       )}
+                      {item.pastelDetails.notes && (
+                        <div className="text-amber-800">
+                          <strong>Obs:</strong> {item.pastelDetails.notes}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -271,7 +284,9 @@ export const MyOrdersTab: React.FC = () => {
                 type="button"
                 onClick={() => {
                   const k = pixConfig?.key || 'pix@suculentospastelaria.com.br';
-                  navigator.clipboard?.writeText(k);
+                  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(k).catch(() => {});
+                  }
                   setCopiedPixId(order.id);
                   showToast('📋 Chave PIX copiada para pagamento!');
                   setTimeout(() => setCopiedPixId(null), 2000);
