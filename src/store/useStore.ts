@@ -19,7 +19,6 @@ import {
 } from '@/data/mockData';
 import { playNewOrderChime } from '@/utils/audio';
 import { syncManager } from '@/utils/sync';
-import { serverSync } from '@/utils/apiSync';
 
 export const DEFAULT_ADMIN_USERS: AdminUser[] = [
   {
@@ -164,6 +163,20 @@ function generate6DigitCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function emitCloudRealtime(payload: Record<string, any>) {
+  if (typeof window !== 'undefined') {
+    fetch('https://ntfy.sh/suculentos_live_orders_v1', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Title': 'Atualização Suculentos',
+        'Priority': 'high',
+      },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
+}
+
 function apiPostOrder(order: Order) {
   if (typeof window !== 'undefined') {
     // 1. Envia para a rota de API do Next.js
@@ -174,7 +187,7 @@ function apiPostOrder(order: Order) {
     }).catch((e) => console.warn('Failed to sync order to server:', e));
 
     // 2. Dispara notificação instantânea para o canal de SSE da nuvem
-    serverSync.emitRealtimeEvent({
+    emitCloudRealtime({
       type: 'NEW_ORDER',
       order,
     });
@@ -189,7 +202,7 @@ function apiPatchOrderStatus(orderId: string, status: OrderStatus, order?: Order
       body: JSON.stringify({ status }),
     }).catch((e) => console.warn('Failed to sync status to server:', e));
 
-    serverSync.emitRealtimeEvent({
+    emitCloudRealtime({
       type: 'ORDER_STATUS_UPDATE',
       orderId,
       status,
@@ -206,7 +219,7 @@ function apiPutStock(ingredients: Ingredient[], products: Product[]) {
       body: JSON.stringify({ ingredients, products }),
     }).catch((e) => console.warn('Failed to sync stock to server:', e));
 
-    serverSync.emitRealtimeEvent({
+    emitCloudRealtime({
       type: 'STOCK_UPDATE',
       ingredients,
       products,
@@ -222,7 +235,7 @@ function apiPutUsers(users: AdminUser[]) {
       body: JSON.stringify({ users }),
     }).catch((e) => console.warn('Failed to sync users to server:', e));
 
-    serverSync.emitRealtimeEvent({
+    emitCloudRealtime({
       type: 'USERS_UPDATE',
       users,
     });
