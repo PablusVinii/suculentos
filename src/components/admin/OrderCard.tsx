@@ -16,6 +16,10 @@ import {
   Store,
   Utensils,
   ShoppingBag,
+  Truck,
+  MapPin,
+  User,
+  Phone,
 } from 'lucide-react';
 
 interface OrderCardProps {
@@ -40,6 +44,8 @@ export const OrderCard: React.FC<OrderCardProps> = ({
         return { label: `Mesa ${order.tableNumber || ''}`, icon: Utensils, bg: 'bg-purple-100 text-purple-900 border-purple-200' };
       case 'viagem':
         return { label: 'Para Viagem', icon: ShoppingBag, bg: 'bg-blue-100 text-blue-900 border-blue-200' };
+      case 'delivery':
+        return { label: 'Entrega Delivery', icon: Truck, bg: 'bg-emerald-100 text-emerald-950 border-emerald-300' };
       default:
         return { label: 'Balcão', icon: Store, bg: 'bg-stone-100 text-stone-800 border-stone-200' };
     }
@@ -103,6 +109,45 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Detalhes de Delivery se aplicável */}
+      {order.orderType === 'delivery' && order.deliveryDetails && (
+        <div className="p-3 mx-3 mt-3 rounded-2xl bg-emerald-50/90 border border-emerald-200 text-xs space-y-1.5 text-emerald-950">
+          <div className="flex items-center gap-1.5 font-black text-emerald-900">
+            <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Dados para Entrega</span>
+          </div>
+          <div className="font-bold flex items-start gap-1 text-stone-900">
+            <MapPin className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+            <span>
+              {order.deliveryDetails.street}, {order.deliveryDetails.number}
+              {order.deliveryDetails.complement ? ` (${order.deliveryDetails.complement})` : ''} - {order.deliveryDetails.neighborhood}
+            </span>
+          </div>
+          {order.deliveryDetails.houseDetails && (
+            <div className="text-[11px] text-stone-700 bg-white/90 p-1.5 rounded-lg border border-emerald-100">
+              <strong className="text-stone-900">Casa/Fachada:</strong> {order.deliveryDetails.houseDetails}
+            </div>
+          )}
+          {order.deliveryDetails.referencePoint && (
+            <div className="text-[11px] text-stone-700 bg-white/90 p-1.5 rounded-lg border border-emerald-100">
+              <strong className="text-stone-900">Ponto de Ref.:</strong> {order.deliveryDetails.referencePoint}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-emerald-200 text-[11px]">
+            <span className="flex items-center gap-1 font-bold text-stone-800">
+              <User className="w-3 h-3 text-emerald-600" />
+              Procurar por: <strong>{order.deliveryDetails.contactPerson}</strong>
+            </span>
+            {order.deliveryDetails.contactPhone && (
+              <span className="flex items-center gap-1 font-bold text-stone-800">
+                <Phone className="w-3 h-3 text-emerald-600" />
+                {order.deliveryDetails.contactPhone}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Corpo com Detalhamento dos Itens & Tags Visuais */}
       <div className="p-4 space-y-3 flex-1">
@@ -239,8 +284,17 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 onClick={() => onUpdateStatus(order.id, 'pronto')}
                 className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all"
               >
-                <BellRing className="w-4 h-4" />
-                <span>Pronto p/ Retirada</span>
+                {order.orderType === 'delivery' ? (
+                  <>
+                    <Truck className="w-4 h-4" />
+                    <span>Despachar Delivery</span>
+                  </>
+                ) : (
+                  <>
+                    <BellRing className="w-4 h-4" />
+                    <span>Pronto p/ Retirada</span>
+                  </>
+                )}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </>
@@ -260,7 +314,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                 className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-stone-900 hover:bg-black text-white font-bold rounded-xl text-xs shadow-md transition-all"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Entregar Pedido</span>
+                <span>{order.orderType === 'delivery' ? 'Confirmar Entrega' : 'Entregar Pedido'}</span>
               </button>
             </>
           )}
@@ -268,7 +322,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           {order.status === 'entregue' && (
             <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center gap-1">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              Entregue
+              {order.orderType === 'delivery' ? 'Entregue no Local' : 'Entregue'}
             </span>
           )}
 

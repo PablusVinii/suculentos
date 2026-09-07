@@ -144,6 +144,7 @@ interface StoreState {
     customerName: string;
     orderType: Order['orderType'];
     tableNumber?: string;
+    deliveryDetails?: Order['deliveryDetails'];
     paymentMethod: Order['paymentMethod'];
     changeFor?: number;
     notes?: string;
@@ -764,6 +765,7 @@ export const useStore = create<StoreState>()(
           customerName: orderData.customerName,
           orderType: orderData.orderType,
           tableNumber: orderData.tableNumber,
+          deliveryDetails: orderData.deliveryDetails,
           items: [...cart],
           totalAmount,
           paymentMethod: orderData.paymentMethod,

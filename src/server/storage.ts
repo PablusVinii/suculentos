@@ -84,6 +84,18 @@ function sanitizeOrder(o: any): Order {
     customerName: o.customerName || 'Cliente',
     orderType: o.orderType || 'balcao',
     tableNumber: o.tableNumber,
+    deliveryDetails: o.deliveryDetails
+      ? {
+          street: o.deliveryDetails.street || '',
+          number: o.deliveryDetails.number || '',
+          neighborhood: o.deliveryDetails.neighborhood || '',
+          complement: o.deliveryDetails.complement || undefined,
+          houseDetails: o.deliveryDetails.houseDetails || undefined,
+          referencePoint: o.deliveryDetails.referencePoint || undefined,
+          contactPerson: o.deliveryDetails.contactPerson || o.customerName || 'Cliente',
+          contactPhone: o.deliveryDetails.contactPhone || undefined,
+        }
+      : undefined,
     items: Array.isArray(o.items) ? o.items : [],
     totalAmount: typeof o.totalAmount === 'number' ? o.totalAmount : 0,
     paymentMethod: o.paymentMethod || 'pix',

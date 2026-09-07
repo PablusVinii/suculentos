@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Flame,
   ArrowRight,
+  Truck,
 } from 'lucide-react';
 
 export const ClientStatusAlertModal: React.FC = () => {
@@ -58,6 +59,7 @@ export const ClientStatusAlertModal: React.FC = () => {
   if (!visible || !clientStatusAlert) return null;
 
   const { order, newStatus } = clientStatusAlert;
+  const isDelivery = order.orderType === 'delivery';
 
   const getStatusPresentation = () => {
     switch (newStatus) {
@@ -73,18 +75,22 @@ export const ClientStatusAlertModal: React.FC = () => {
         };
       case 'pronto':
         return {
-          title: 'SEU PEDIDO ESTÁ PRONTO! 🔔',
-          subtitle: 'Seu lanche está quentinho e pronto para retirada ou entrega na mesa!',
-          badge: 'Pronto para Retirada',
+          title: isDelivery ? '🛵 SAIU PARA ENTREGA! A CAMINHO!' : 'SEU PEDIDO ESTÁ PRONTO! 🔔',
+          subtitle: isDelivery
+            ? 'O entregador já está a caminho do seu endereço! Por favor, fique atento ao portão/interfone e celular.'
+            : 'Seu lanche está quentinho e pronto para retirada ou entrega na mesa!',
+          badge: isDelivery ? 'Saiu para Entrega' : 'Pronto para Retirada',
           headerBg: 'from-emerald-600 via-teal-600 to-emerald-700',
-          icon: BellRing,
+          icon: isDelivery ? Truck : BellRing,
           iconBg: 'bg-emerald-100 text-emerald-700',
           badgeStyle: 'bg-emerald-100 text-emerald-900 border-emerald-300',
         };
       case 'entregue':
         return {
           title: 'Pedido Entregue! Bom Apetite! 🥟',
-          subtitle: 'Obrigado pela preferência! Esperamos que ame o sabor da Suculentos.',
+          subtitle: isDelivery
+            ? 'Seu pedido foi entregue com sucesso no seu endereço. Aproveite!'
+            : 'Obrigado pela preferência! Esperamos que ame o sabor da Suculentos.',
           badge: 'Concluído / Entregue',
           headerBg: 'from-stone-800 via-stone-900 to-black',
           icon: CheckCircle2,
@@ -174,18 +180,18 @@ export const ClientStatusAlertModal: React.FC = () => {
           {/* Resumo Rápido dos Itens */}
           <div className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 text-xs space-y-1.5">
             <span className="text-[10px] font-extrabold uppercase text-stone-500 tracking-wider block">
-              Itens da Comanda ({order.items.reduce((a, b) => a + b.quantity, 0)}):
+              Itens da Comanda ({(order.items || []).reduce((a, b) => a + (b.quantity || 1), 0)}):
             </span>
             <div className="space-y-1 max-h-32 overflow-y-auto">
-              {order.items.map((item, idx) => (
+              {(order.items || []).map((item, idx) => (
                 <div key={item.id || idx} className="flex justify-between font-bold text-stone-800">
                   <span>
                     {item.quantity}x{' '}
                     {item.type === 'custom_pastel'
-                      ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size.name})`
-                      : item.product?.name}
+                      ? `${item.pastelDetails?.recipientLabel || `Pastel #${idx + 1}`} (${item.pastelDetails?.size?.name || 'Pastel'})`
+                      : item.product?.name || 'Produto'}
                   </span>
-                  <span className="text-stone-500 font-semibold">{formatCurrency(item.totalPrice)}</span>
+                  <span className="text-stone-500 font-semibold">{formatCurrency(item.totalPrice || 0)}</span>
                 </div>
               ))}
             </div>

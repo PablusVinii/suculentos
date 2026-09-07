@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useStore } from '@/store/useStore';
-import { PaymentMethod, OrderType } from '@/types';
+import { PaymentMethod, OrderType, DeliveryDetails } from '@/types';
 import { formatCurrency } from '@/utils/format';
 import { playSuccessChime } from '@/utils/audio';
 import {
@@ -17,6 +17,14 @@ import {
   ShoppingBag,
   Sparkles,
   AlertCircle,
+  Truck,
+  MapPin,
+  Home,
+  UserCheck,
+  Phone,
+  Info,
+  ShieldCheck,
+  BellRing,
 } from 'lucide-react';
 
 export const CheckoutModal: React.FC = () => {
@@ -28,13 +36,24 @@ export const CheckoutModal: React.FC = () => {
   } = useStore();
 
   const [customerName, setCustomerName] = useState('');
-  const [orderType, setOrderType] = useState<OrderType>('balcao');
+  const [orderType, setOrderType] = useState<OrderType>('delivery');
   const [tableNumber, setTableNumber] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
   const [changeFor, setChangeFor] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [copiedPix, setCopiedPix] = useState(false);
   const [nameError, setNameError] = useState(false);
+
+  // Campos de Entrega Delivery
+  const [street, setStreet] = useState('');
+  const [number, setNumber] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [complement, setComplement] = useState('');
+  const [houseDetails, setHouseDetails] = useState('');
+  const [referencePoint, setReferencePoint] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
 
   if (!isCheckoutOpen) return null;
 
@@ -58,10 +77,32 @@ export const CheckoutModal: React.FC = () => {
       return;
     }
 
+    let deliveryDetailsObj: DeliveryDetails | undefined = undefined;
+
+    if (orderType === 'delivery') {
+      if (!street.trim() || !number.trim() || !neighborhood.trim()) {
+        setDeliveryError('Por favor, preencha a Rua, Número e Bairro para a entrega.');
+        return;
+      }
+
+      const assignedContact = contactPerson.trim() || customerName.trim();
+      deliveryDetailsObj = {
+        street: street.trim(),
+        number: number.trim(),
+        neighborhood: neighborhood.trim(),
+        complement: complement.trim() || undefined,
+        houseDetails: houseDetails.trim() || undefined,
+        referencePoint: referencePoint.trim() || undefined,
+        contactPerson: assignedContact,
+        contactPhone: contactPhone.trim() || undefined,
+      };
+    }
+
     createOrder({
       customerName: customerName.trim(),
       orderType,
-      tableNumber: orderType === 'mesa' ? tableNumber : undefined,
+      tableNumber: orderType === 'mesa' ? tableNumber.trim() : undefined,
+      deliveryDetails: deliveryDetailsObj,
       paymentMethod,
       changeFor: paymentMethod === 'dinheiro' && changeForNumber > 0 ? changeForNumber : undefined,
       notes: notes.trim() || undefined,
@@ -80,7 +121,7 @@ export const CheckoutModal: React.FC = () => {
 
       <div className="relative bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-stone-100 z-10 animate-slide-up">
         {/* Header do Checkout */}
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-6 text-white flex items-center justify-between">
+        <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-white flex items-center justify-between">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-bold mb-1">
               <Sparkles className="w-3.5 h-3.5" />
@@ -88,7 +129,7 @@ export const CheckoutModal: React.FC = () => {
             </div>
             <h2 className="text-xl font-black font-display">Identificação & Pagamento</h2>
             <p className="text-amber-100 text-xs mt-0.5">
-              Informe seu nome para chamarmos seu pedido quando estiver pronto!
+              Informe seus dados para entrega rápida ou preparo no balcão!
             </p>
           </div>
 
@@ -105,7 +146,7 @@ export const CheckoutModal: React.FC = () => {
           {/* Nome do Cliente */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1.5">
-              Seu Nome Completo ou Apelido <span className="text-red-500">*</span>
+              Seu Nome Completo ou Como Prefere ser Chamado <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -134,13 +175,14 @@ export const CheckoutModal: React.FC = () => {
           {/* Tipo de Atendimento */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-2">
-              Onde você vai saborear?
+              Como deseja receber seu pedido? <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { id: 'balcao' as const, label: 'Balcão', icon: Store },
-                { id: 'mesa' as const, label: 'Na Mesa', icon: Utensils },
-                { id: 'viagem' as const, label: 'Para Viagem', icon: ShoppingBag },
+                { id: 'delivery' as const, label: 'Entrega Delivery', icon: Truck, badge: 'Em Casa' },
+                { id: 'viagem' as const, label: 'Para Viagem', icon: ShoppingBag, badge: 'Retirar' },
+                { id: 'mesa' as const, label: 'Na Mesa', icon: Utensils, badge: 'No Local' },
+                { id: 'balcao' as const, label: 'No Balcão', icon: Store, badge: 'Rápido' },
               ].map((type) => {
                 const Icon = type.icon;
                 const isSelected = orderType === type.id;
@@ -148,20 +190,27 @@ export const CheckoutModal: React.FC = () => {
                   <button
                     key={type.id}
                     type="button"
-                    onClick={() => setOrderType(type.id)}
-                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-xs font-bold transition-all ${
+                    onClick={() => {
+                      setOrderType(type.id);
+                      setDeliveryError(null);
+                    }}
+                    className={`flex flex-col items-center justify-center p-3 rounded-2xl border text-xs font-bold transition-all relative ${
                       isSelected
-                        ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm ring-1 ring-amber-500/20'
+                        ? 'border-amber-500 bg-amber-50 text-amber-900 shadow-sm ring-2 ring-amber-500/30'
                         : 'border-stone-200 hover:bg-stone-50 text-stone-600'
                     }`}
                   >
                     <Icon className={`w-5 h-5 mb-1 ${isSelected ? 'text-amber-600' : 'text-stone-400'}`} />
                     <span>{type.label}</span>
+                    <span className={`text-[9px] font-semibold mt-0.5 ${isSelected ? 'text-amber-700' : 'text-stone-400'}`}>
+                      {type.badge}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
+            {/* Campo Específico para Mesa */}
             {orderType === 'mesa' && (
               <div className="mt-2.5 animate-fade-in">
                 <input
@@ -175,6 +224,175 @@ export const CheckoutModal: React.FC = () => {
             )}
           </div>
 
+          {/* Seção Completa de Endereço de Entrega (Delivery) */}
+          {orderType === 'delivery' && (
+            <div className="space-y-4 p-4 sm:p-5 rounded-3xl bg-amber-50/70 border border-amber-200 animate-slide-up">
+              <div className="flex items-center gap-2 text-amber-950 font-black text-sm border-b border-amber-200/80 pb-2">
+                <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Endereço Completo para Entrega</span>
+              </div>
+
+              {deliveryError && (
+                <div className="p-3 rounded-xl bg-red-100 border border-red-300 text-red-800 text-xs font-bold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{deliveryError}</span>
+                </div>
+              )}
+
+              {/* Rua e Número */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="col-span-2">
+                  <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1">
+                    Rua / Avenida <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={street}
+                    onChange={(e) => {
+                      setStreet(e.target.value);
+                      if (deliveryError) setDeliveryError(null);
+                    }}
+                    placeholder="Ex: Rua das Flores"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1">
+                    Número <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={number}
+                    onChange={(e) => {
+                      setNumber(e.target.value);
+                      if (deliveryError) setDeliveryError(null);
+                    }}
+                    placeholder="Ex: 142"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Bairro e Complemento */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1">
+                    Bairro <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={neighborhood}
+                    onChange={(e) => {
+                      setNeighborhood(e.target.value);
+                      if (deliveryError) setDeliveryError(null);
+                    }}
+                    placeholder="Ex: Centro / Jardim das Rosas"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1">
+                    Complemento / Apto (Opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                    placeholder="Ex: Apto 204 Bloco B, Casa 2"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* Detalhes da Casa / Residência */}
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1 flex items-center gap-1">
+                  <Home className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Detalhes da Residência / Fachada</span>
+                </label>
+                <input
+                  type="text"
+                  value={houseDetails}
+                  onChange={(e) => setHouseDetails(e.target.value)}
+                  placeholder="Ex: Portão marrom de grade, casa dos fundos, interfone toca alto..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+
+              {/* Ponto de Referência */}
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1">
+                  Ponto de Referência (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={referencePoint}
+                  onChange={(e) => setReferencePoint(e.target.value)}
+                  placeholder="Ex: Próximo à padaria São Jorge, em frente à pracinha"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+
+              {/* Pessoa a Procurar e Telefone / WhatsApp */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 pt-1 border-t border-amber-200/80">
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1 flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Pessoa a ser Procurada <span className="text-red-600">*</span></span>
+                  </label>
+                  <input
+                    type="text"
+                    value={contactPerson}
+                    onChange={(e) => setContactPerson(e.target.value)}
+                    placeholder={customerName ? `Ex: ${customerName} (ou familiar)` : 'Ex: Carlos / Maria (mãe)'}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-amber-900 mb-1 flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5 text-amber-700" />
+                    <span>WhatsApp / Telefone para Avisos</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value)}
+                    placeholder="Ex: (11) 98765-4321"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-white text-xs text-stone-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  />
+                </div>
+              </div>
+
+              {/* Recomendações para uma Entrega Rápida e Perfeita */}
+              <div className="p-3.5 rounded-2xl bg-amber-100/80 border border-amber-300 text-amber-950 text-xs space-y-2">
+                <div className="flex items-center gap-1.5 font-black text-amber-900">
+                  <BellRing className="w-4 h-4 text-amber-700 shrink-0 animate-bounce" />
+                  <span>Recomendações Importantes para sua Entrega 🛵:</span>
+                </div>
+                <ul className="space-y-1.5 text-[11px] text-amber-900 font-medium pl-1">
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-amber-600 font-bold">•</span>
+                    <span><strong>Fique atento no portão/celular:</strong> Assim que o pedido mudar para <em>"Saiu para Entrega"</em> aqui no app, fique no aguardo da campainha ou chamada.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-amber-600 font-bold">•</span>
+                    <span><strong>Atenção aos Pets:</strong> Caso tenha animais domésticos, mantenha-os presos para maior segurança e rapidez do entregador.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="text-amber-600 font-bold">•</span>
+                    <span><strong>Pagamento Facilitado:</strong> Deixe o dinheiro ou cartão já em mãos para agilizar e receber seu pastel super crocante e quentinho!</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* Forma de Pagamento */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-2">
@@ -183,9 +401,9 @@ export const CheckoutModal: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
                 { id: 'pix' as const, label: 'PIX', icon: QrCode, badge: 'Instantâneo' },
-                { id: 'debito' as const, label: 'Débito', icon: CreditCard },
-                { id: 'credito' as const, label: 'Crédito', icon: CreditCard },
-                { id: 'dinheiro' as const, label: 'Espécie', icon: Banknote },
+                { id: 'debito' as const, label: 'Débito', icon: CreditCard, badge: 'Na Maquininha' },
+                { id: 'credito' as const, label: 'Crédito', icon: CreditCard, badge: 'Na Maquininha' },
+                { id: 'dinheiro' as const, label: 'Dinheiro', icon: Banknote, badge: 'Espécie' },
               ].map((m) => {
                 const Icon = m.icon;
                 const isSelected = paymentMethod === m.id;
@@ -202,6 +420,9 @@ export const CheckoutModal: React.FC = () => {
                   >
                     <Icon className={`w-5 h-5 mb-1 ${isSelected ? 'text-amber-600' : 'text-stone-400'}`} />
                     <span>{m.label}</span>
+                    <span className={`text-[9px] font-medium mt-0.5 ${isSelected ? 'text-amber-700' : 'text-stone-400'}`}>
+                      {m.badge}
+                    </span>
                   </button>
                 );
               })}
@@ -226,7 +447,7 @@ export const CheckoutModal: React.FC = () => {
                     pix@suculentospastelaria.com.br
                   </code>
                   <p className="text-[11px] text-stone-500">
-                    O QR Code ou comprovante pode ser apresentado no momento da entrega do lanche.
+                    O comprovante pode ser apresentado no momento da entrega do lanche.
                   </p>
                 </div>
               )}
@@ -235,7 +456,9 @@ export const CheckoutModal: React.FC = () => {
                 <div className="flex items-center gap-2.5 text-stone-700">
                   <CreditCard className="w-5 h-5 text-amber-600 shrink-0" />
                   <p className="text-xs">
-                    O pagamento será processado na maquininha física de cartões ao retirar ou na entrega da mesa.
+                    {orderType === 'delivery'
+                      ? 'O entregador levará a maquininha física de cartões até a sua porta.'
+                      : 'O pagamento será processado na maquininha física ao retirar no balcão ou na mesa.'}
                   </p>
                 </div>
               )}
@@ -302,7 +525,7 @@ export const CheckoutModal: React.FC = () => {
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Ex: Chamar pelo apelido, guardanapos extras..."
+              placeholder="Ex: Guardanapos extras, molho à parte..."
               className="w-full px-4 py-2.5 rounded-2xl border border-stone-200 bg-stone-50/50 text-xs outline-none focus:border-amber-500"
             />
           </div>
@@ -329,3 +552,4 @@ export const CheckoutModal: React.FC = () => {
     </div>
   );
 };
+

@@ -14,6 +14,8 @@ import {
   Store,
   Utensils,
   Flame,
+  Truck,
+  MapPin,
 } from 'lucide-react';
 
 interface NewOrderAlertModalProps {
@@ -99,7 +101,7 @@ export const NewOrderAlertModal: React.FC<NewOrderAlertModalProps> = ({ onOpenRe
         </div>
 
         {/* Corpo com Detalhes do Pedido */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-4">
           {/* Informações do Cliente e Local */}
           <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
             <div>
@@ -110,7 +112,10 @@ export const NewOrderAlertModal: React.FC<NewOrderAlertModalProps> = ({ onOpenRe
                 {order.customerName}
               </h4>
               <span className="text-xs font-bold text-stone-600 mt-0.5 inline-block">
-                Local: <strong className="uppercase">{order.orderType}</strong>{' '}
+                Local:{' '}
+                <strong className="uppercase">
+                  {order.orderType === 'delivery' ? '🛵 Entrega (Delivery)' : order.orderType}
+                </strong>{' '}
                 {order.tableNumber && `(Mesa ${order.tableNumber})`}
               </span>
             </div>
@@ -128,6 +133,31 @@ export const NewOrderAlertModal: React.FC<NewOrderAlertModalProps> = ({ onOpenRe
               </span>
             </div>
           </div>
+
+          {/* Endereço de Entrega se for Delivery */}
+          {order.orderType === 'delivery' && order.deliveryDetails && (
+            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-1.5">
+              <div className="font-black flex items-center gap-1.5 text-emerald-900">
+                <Truck className="w-4 h-4 text-emerald-600" />
+                <span>Endereço de Entrega:</span>
+              </div>
+              <p className="font-bold text-stone-900">
+                {order.deliveryDetails.street}, Nº {order.deliveryDetails.number}
+                {order.deliveryDetails.complement ? ` (${order.deliveryDetails.complement})` : ''} - {order.deliveryDetails.neighborhood}
+              </p>
+              {order.deliveryDetails.houseDetails && (
+                <p className="text-[11px] text-stone-700">
+                  <strong>Casa/Fachada:</strong> {order.deliveryDetails.houseDetails}
+                </p>
+              )}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-emerald-200/80 text-[11px]">
+                <span>Procurar por: <strong>{order.deliveryDetails.contactPerson}</strong></span>
+                {order.deliveryDetails.contactPhone && (
+                  <span>Tel: <strong>{order.deliveryDetails.contactPhone}</strong></span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Lista Resumida dos Itens */}
           <div className="space-y-2">

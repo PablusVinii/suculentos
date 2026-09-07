@@ -15,6 +15,10 @@ import {
   AlertCircle,
   ShoppingBag,
   Sparkles,
+  Truck,
+  MapPin,
+  Home,
+  UserCheck,
 } from 'lucide-react';
 
 export const MyOrdersTab: React.FC = () => {
@@ -24,13 +28,13 @@ export const MyOrdersTab: React.FC = () => {
   const [hasSearched, setHasSearched] = useState(false);
 
   // Pedidos deste cliente salvos na sessão/dispositivo local
-  const mySavedOrders = orders.filter((o) =>
+  const mySavedOrders = (orders || []).filter((o) =>
     myOrderCodes.includes(o.trackingCode || o.shortCode.toString())
   );
 
   // Pedido pesquisado dinâmico e reativo a atualizações em tempo real
   const searchedOrder = searchedCode
-    ? orders.find(
+    ? (orders || []).find(
         (o) =>
           (o.trackingCode && o.trackingCode === searchedCode) ||
           o.shortCode.toString() === searchedCode ||
@@ -46,7 +50,7 @@ export const MyOrdersTab: React.FC = () => {
     setHasSearched(true);
     setSearchedCode(cleanCode);
 
-    const found = orders.find(
+    const found = (orders || []).find(
       (o) =>
         (o.trackingCode && o.trackingCode === cleanCode) ||
         o.shortCode.toString() === cleanCode ||
@@ -58,7 +62,7 @@ export const MyOrdersTab: React.FC = () => {
     }
   };
 
-  const getStatusInfo = (status: string) => {
+  const getStatusInfo = (status: string, isDelivery = false) => {
     switch (status) {
       case 'novo':
         return {
@@ -78,19 +82,21 @@ export const MyOrdersTab: React.FC = () => {
         };
       case 'pronto':
         return {
-          label: 'Pronto para Retirada!',
+          label: isDelivery ? '🛵 Saiu para Entrega / A Caminho!' : 'Pronto para Retirada!',
           color: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-          icon: BellRing,
-          progress: 100,
-          desc: 'Seu lanche está quentinho e pronto para você saborear!',
+          icon: isDelivery ? Truck : BellRing,
+          progress: 90,
+          desc: isDelivery
+            ? 'O entregador já está a caminho com seu pedido quentinho! Fique no aguardo no portão ou interfone.'
+            : 'Seu lanche está quentinho e pronto para você saborear!',
         };
       case 'entregue':
         return {
-          label: 'Entregue / Concluído',
+          label: isDelivery ? 'Entregue no Endereço' : 'Entregue / Concluído',
           color: 'bg-stone-100 text-stone-700 border-stone-300',
           icon: CheckCircle2,
           progress: 100,
-          desc: 'Pedido entregue. Bom apetite!',
+          desc: isDelivery ? 'Pedido entregue no seu endereço. Bom apetite!' : 'Pedido entregue. Bom apetite!',
         };
       default:
         return {
@@ -104,7 +110,8 @@ export const MyOrdersTab: React.FC = () => {
   };
 
   const renderOrderCard = (order: Order) => {
-    const statusInfo = getStatusInfo(order.status);
+    const isDelivery = order.orderType === 'delivery';
+    const statusInfo = getStatusInfo(order.status, isDelivery);
     const StatusIcon = statusInfo.icon;
     const elapsed = getElapsedMinutes(order.createdAt);
 
@@ -126,9 +133,18 @@ export const MyOrdersTab: React.FC = () => {
               <div className="flex items-center gap-2 text-xs text-stone-500 mt-0.5">
                 <span>{formatTime(order.createdAt)}</span>
                 <span>•</span>
-                <span className="font-bold uppercase text-stone-700">
-                  {order.orderType}
-                  {order.tableNumber ? ` (${order.tableNumber})` : ''}
+                <span className="font-bold uppercase text-stone-700 flex items-center gap-1">
+                  {isDelivery ? (
+                    <>
+                      <Truck className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Entrega Delivery</span>
+                    </>
+                  ) : (
+                    <span>
+                      {order.orderType}
+                      {order.tableNumber ? ` (${order.tableNumber})` : ''}
+                    </span>
+                  )}
                 </span>
                 <span>•</span>
                 <span>{elapsed} min atrás</span>
@@ -147,6 +163,29 @@ export const MyOrdersTab: React.FC = () => {
           </div>
         </div>
 
+        {/* Endereço de Entrega (se for delivery) */}
+        {isDelivery && order.deliveryDetails && (
+          <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs space-y-1.5 text-stone-800">
+            <div className="flex items-center gap-1.5 font-bold text-amber-950">
+              <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Endereço de Entrega:</span>
+            </div>
+            <p className="font-medium text-stone-900">
+              {order.deliveryDetails.street}, Nº {order.deliveryDetails.number} - {order.deliveryDetails.neighborhood}
+              {order.deliveryDetails.complement ? ` (${order.deliveryDetails.complement})` : ''}
+            </p>
+            {order.deliveryDetails.houseDetails && (
+              <p className="text-[11px] text-stone-600">
+                <strong>Detalhes da casa:</strong> {order.deliveryDetails.houseDetails}
+              </p>
+            )}
+            <p className="text-[11px] text-stone-700">
+              <strong>Procurar por:</strong> {order.deliveryDetails.contactPerson}
+              {order.deliveryDetails.contactPhone && ` • Tel: ${order.deliveryDetails.contactPhone}`}
+            </p>
+          </div>
+        )}
+
         {/* Barra de Progresso Visual */}
         <div className="space-y-1.5">
           <div className="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden">
@@ -161,7 +200,7 @@ export const MyOrdersTab: React.FC = () => {
               style={{ width: `${statusInfo.progress}%` }}
             />
           </div>
-          <p className="text-xs text-stone-500 font-medium">{statusInfo.desc}</p>
+          <p className="text-xs text-stone-600 font-medium">{statusInfo.desc}</p>
         </div>
 
         {/* Detalhamento dos Itens do Pedido */}

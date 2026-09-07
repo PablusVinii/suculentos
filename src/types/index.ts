@@ -55,8 +55,19 @@ export interface CartItem {
 }
 
 export type PaymentMethod = 'pix' | 'debito' | 'credito' | 'dinheiro';
-export type OrderType = 'balcao' | 'mesa' | 'viagem';
+export type OrderType = 'balcao' | 'mesa' | 'viagem' | 'delivery';
 export type OrderStatus = 'novo' | 'preparando' | 'pronto' | 'entregue' | 'cancelado';
+
+export interface DeliveryDetails {
+  street: string; // Rua / Avenida
+  number: string; // Número
+  neighborhood: string; // Bairro
+  complement?: string; // Complemento (ex: Apto 302, Bloco B, Casa dos Fundos)
+  houseDetails?: string; // Detalhes da residência (ex: Portão marrom, muro verde, campainha preta)
+  referencePoint?: string; // Ponto de referência (ex: Próximo à padaria Silva)
+  contactPerson: string; // Nome da pessoa a ser procurada na entrega
+  contactPhone?: string; // WhatsApp / Telefone para contato
+}
 
 export interface Order {
   id: string; // e.g. "PED-849201"
@@ -66,6 +77,7 @@ export interface Order {
   customerName: string;
   orderType: OrderType;
   tableNumber?: string;
+  deliveryDetails?: DeliveryDetails;
   items: CartItem[];
   totalAmount: number;
   paymentMethod: PaymentMethod;

@@ -66,10 +66,34 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({ order,
               CLIENTE: {order.customerName}
             </span>
             <span className="text-[10px] font-bold uppercase bg-stone-100 px-2 py-0.5 rounded inline-block mt-1">
-              LOCAL: {order.orderType.toUpperCase()}
+              LOCAL: {order.orderType === 'delivery' ? 'ENTREGA (DELIVERY)' : order.orderType.toUpperCase()}
               {order.tableNumber ? ` (${order.tableNumber})` : ''}
             </span>
           </div>
+
+          {/* DADOS DE ENTREGA (MOTOBOY) SE FOR DELIVERY */}
+          {order.orderType === 'delivery' && order.deliveryDetails && (
+            <div className="py-2 border-b border-dashed border-stone-400 text-left space-y-1 bg-stone-50 p-2 rounded">
+              <div className="font-extrabold text-[11px] text-center border-b border-stone-300 pb-1 text-stone-900">
+                === DADOS DE ENTREGA (MOTOBOY) ===
+              </div>
+              <div className="text-[10px] space-y-0.5">
+                <p><strong>ENDEREÇO:</strong> {order.deliveryDetails.street}, Nº {order.deliveryDetails.number}</p>
+                {order.deliveryDetails.complement && <p><strong>COMPL:</strong> {order.deliveryDetails.complement}</p>}
+                <p><strong>BAIRRO:</strong> {order.deliveryDetails.neighborhood}</p>
+                {order.deliveryDetails.houseDetails && (
+                  <p><strong>CASA/DETALHES:</strong> {order.deliveryDetails.houseDetails}</p>
+                )}
+                {order.deliveryDetails.referencePoint && (
+                  <p><strong>PONTO DE REF.:</strong> {order.deliveryDetails.referencePoint}</p>
+                )}
+                <p><strong>PROCURAR POR:</strong> {order.deliveryDetails.contactPerson}</p>
+                {order.deliveryDetails.contactPhone && (
+                  <p><strong>TEL / WHATS:</strong> {order.deliveryDetails.contactPhone}</p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Lista de Itens */}
           <div className="space-y-3 py-1 border-b border-dashed border-stone-400">

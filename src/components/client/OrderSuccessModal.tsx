@@ -106,14 +106,38 @@ export const OrderSuccessModal: React.FC = () => {
           <div className="flex items-center justify-center gap-3 text-xs text-amber-100 font-medium mt-4 pt-3 border-t border-white/20">
             <span>{formatTime(lastPlacedOrder.createdAt)}</span>
             <span>•</span>
-            <span className="uppercase">{lastPlacedOrder.orderType}</span>
+            <span className="uppercase">{lastPlacedOrder.orderType === 'delivery' ? '🛵 Entrega Delivery' : lastPlacedOrder.orderType}</span>
             <span>•</span>
             <span>{formatCurrency(lastPlacedOrder.totalAmount)}</span>
           </div>
         </div>
 
+        {/* Informações Específicas de Entrega Delivery */}
+        {lastPlacedOrder.orderType === 'delivery' && lastPlacedOrder.deliveryDetails && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-left text-xs space-y-2 mb-6">
+            <div className="font-extrabold text-amber-950 flex items-center gap-1.5">
+              <span>🛵 Endereço de Entrega:</span>
+            </div>
+            <p className="text-stone-800 font-medium">
+              {lastPlacedOrder.deliveryDetails.street}, Nº {lastPlacedOrder.deliveryDetails.number} - {lastPlacedOrder.deliveryDetails.neighborhood}
+              {lastPlacedOrder.deliveryDetails.complement && ` (${lastPlacedOrder.deliveryDetails.complement})`}
+            </p>
+            {lastPlacedOrder.deliveryDetails.houseDetails && (
+              <p className="text-[11px] text-stone-600">
+                <strong>Detalhes da casa:</strong> {lastPlacedOrder.deliveryDetails.houseDetails}
+              </p>
+            )}
+            <p className="text-[11px] text-stone-700">
+              <strong>Procurar por:</strong> {lastPlacedOrder.deliveryDetails.contactPerson}
+            </p>
+            <div className="p-2.5 rounded-xl bg-amber-100/70 text-[11px] text-amber-950 font-bold">
+              🔔 Fique atento ao portão, campainha e celular quando o status mudar para <em>"Saiu para Entrega"</em>!
+            </div>
+          </div>
+        )}
+
         {/* Informação sobre Consulta Segura */}
-        <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-left text-xs space-y-2 mb-6">
+        <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 text-left text-xs space-y-2 mb-6">
           <div className="flex items-start gap-2 text-stone-700">
             <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
@@ -122,7 +146,7 @@ export const OrderSuccessModal: React.FC = () => {
           </div>
 
           {lastPlacedOrder.changeAmount && lastPlacedOrder.changeAmount > 0 && (
-            <div className="flex justify-between text-emerald-800 font-bold pt-1 border-t border-amber-200/60">
+            <div className="flex justify-between text-emerald-800 font-bold pt-1 border-t border-stone-200">
               <span>Troco a receber:</span>
               <span>{formatCurrency(lastPlacedOrder.changeAmount)}</span>
             </div>
