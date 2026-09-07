@@ -31,7 +31,7 @@ export const INITIAL_PASTEL_SIZES: PastelSize[] = [
     name: 'Lua Cheia',
     price: 20.0,
     maxFlavors: 12,
-    description: 'Tamanho especial gigante em formato meia-lua com recheio duplo.',
+    description: 'Tamanho especial gigante em formato lua cheia com recheio duplo.',
     badge: 'Tamanho Especial 🌕',
   },
 ];
