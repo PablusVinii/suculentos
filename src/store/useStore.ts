@@ -912,28 +912,49 @@ export const useStore = create<StoreState>()(
       },
 
       deleteOrder: async (orderId) => {
-        const { orders } = get();
-        const updated = orders.filter((ord) => ord.id !== orderId);
-        set({ orders: updated });
+        const cleanId = orderId.trim().replace('#', '');
+        const { orders, myOrderCodes } = get();
+
+        const updated = orders.filter(
+          (ord) =>
+            ord.id !== cleanId &&
+            ord.id !== `PED-${cleanId}` &&
+            ord.id !== `PED-${cleanId.replace('PED-', '')}` &&
+            ord.trackingCode !== cleanId &&
+            ord.trackingCode !== cleanId.replace('PED-', '') &&
+            ord.shortCode?.toString() !== cleanId &&
+            ord.shortCode?.toString() !== cleanId.replace('PED-', '')
+        );
+
+        const updatedMyCodes = myOrderCodes.filter(
+          (c) =>
+            c !== cleanId &&
+            c !== `PED-${cleanId}` &&
+            c !== cleanId.replace('PED-', '')
+        );
+
+        set({ orders: updated, myOrderCodes: updatedMyCodes });
 
         // 1. Sincroniza via BroadcastChannel local
         syncManager.broadcast({
           type: 'ORDER_DELETED',
-          orderId,
+          orderId: cleanId,
         });
 
         // 2. Sincroniza via Cloud PubSub
         emitCloudRealtime({
           type: 'ORDER_DELETED',
-          orderId,
+          orderId: cleanId,
         });
 
-        // 3. Exclui no banco de dados na nuvem / Vercel DB
+        // 3. Exclui no banco de dados no servidor
         try {
-          await fetch(`/api/orders?id=${encodeURIComponent(orderId)}`, {
+          await fetch(`/api/orders?id=${encodeURIComponent(cleanId)}`, {
             method: 'DELETE',
           });
         } catch (_) {}
+
+        get().showToast('🗑️ Pedido excluído permanentemente.');
       },
 
       addMyOrderCode: (code) => {

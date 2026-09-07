@@ -181,14 +181,8 @@ class ServerSyncManager {
           });
           this.initialized = true;
 
-          // Mescla mantendo pedidos locais criados recentemente
-          const merged = [...serverOrders];
-          state.orders.forEach((localOrder) => {
-            if (!merged.some((m) => m.id === localOrder.id)) {
-              merged.push(localOrder);
-            }
-          });
-          useStore.setState({ orders: merged });
+          // Fonte da verdade: a lista oficial de pedidos do servidor
+          useStore.setState({ orders: serverOrders });
         } else {
           // Checa se há novos pedidos feitos por clientes em outros dispositivos
           const newOrdersFromOtherDevices = serverOrders.filter(

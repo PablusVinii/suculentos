@@ -322,19 +322,29 @@ export const serverStorage = {
 
   async deleteOrder(orderId: string): Promise<boolean> {
     const db = await loadDatabaseAsync();
+    const cleanId = orderId.trim().replace('#', '');
     const initialCount = db.orders.length;
-    db.orders = db.orders.filter((o) => o.id !== orderId);
+
+    db.orders = db.orders.filter(
+      (o) =>
+        o.id !== cleanId &&
+        o.id !== `PED-${cleanId}` &&
+        o.id !== `PED-${cleanId.replace('PED-', '')}` &&
+        o.trackingCode !== cleanId &&
+        o.trackingCode !== cleanId.replace('PED-', '') &&
+        o.shortCode?.toString() !== cleanId &&
+        o.shortCode?.toString() !== cleanId.replace('PED-', '')
+    );
+
     const wasDeleted = db.orders.length < initialCount;
 
-    if (wasDeleted) {
-      saveDatabase(db);
+    saveDatabase(db);
 
-      // Dispara broadcast em tempo real para remover a comanda de todos os dispositivos
-      broadcastRealtimeEvent({
-        type: 'ORDER_DELETED',
-        orderId,
-      });
-    }
+    // Dispara broadcast em tempo real para remover a comanda de todos os dispositivos
+    broadcastRealtimeEvent({
+      type: 'ORDER_DELETED',
+      orderId: cleanId,
+    });
 
     return wasDeleted;
   },
