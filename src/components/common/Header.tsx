@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useStore } from '@/store/useStore';
-import { ShoppingBag, Sparkles, ClipboardList } from 'lucide-react';
+import { ShoppingBag, Sparkles, ClipboardList, Download } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -53,6 +53,21 @@ export const Header: React.FC = () => {
 
           {/* Botões de Ação do Cliente */}
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Atalho de Instalação do App */}
+            <button
+              id="header-install-app-button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('open-pwa-install-modal'));
+                }
+              }}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 transition-all hover:scale-102"
+              title="Instalar como aplicativo no seu celular ou computador"
+            >
+              <Download className="w-3.5 h-3.5 text-amber-600" />
+              <span>Instalar App</span>
+            </button>
+
             {/* Atalho Acompanhar Pedido */}
             <button
               id="header-track-order-button"

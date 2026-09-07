@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Volume2,
   VolumeX,
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -118,6 +119,20 @@ export const AdminDashboard: React.FC = () => {
                 ) : (
                   <VolumeX className="w-4 h-4 text-stone-500" />
                 )}
+              </button>
+
+              {/* Instalar App / Atalho */}
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('open-pwa-install-modal'));
+                  }
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all hover:scale-102"
+                title="Instalar painel como aplicativo no tablet ou computador"
+              >
+                <Download className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden md:inline">Instalar App</span>
               </button>
 
               {/* Acessar Cardápio Público */}
