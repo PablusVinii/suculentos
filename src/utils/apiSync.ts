@@ -111,6 +111,10 @@ class ServerSyncManager {
             useStore.setState({
               adminUsers: msg.users,
             });
+          } else if (msg.type === 'PIX_UPDATE' && msg.pixConfig) {
+            useStore.setState({
+              pixConfig: msg.pixConfig,
+            });
           }
         } catch (_) {}
       };
@@ -247,6 +251,10 @@ class ServerSyncManager {
 
       if (Array.isArray(serverUsers) && serverUsers.length > 0) {
         useStore.setState({ adminUsers: serverUsers });
+      }
+
+      if (data.pixConfig && typeof data.pixConfig.key === 'string') {
+        useStore.setState({ pixConfig: data.pixConfig });
       }
     } catch (err) {
       // Falha silenciosa de rede com nova tentativa no próximo ciclo

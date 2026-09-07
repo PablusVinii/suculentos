@@ -12,6 +12,8 @@ import {
   Sparkles,
   KeyRound,
   ShieldCheck,
+  QrCode,
+  Zap,
 } from 'lucide-react';
 
 export const OrderSuccessModal: React.FC = () => {
@@ -20,9 +22,11 @@ export const OrderSuccessModal: React.FC = () => {
     setIsOrderSuccessOpen,
     lastPlacedOrder,
     setClientActiveTab,
+    pixConfig,
   } = useStore();
 
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedPix, setCopiedPix] = useState(false);
 
   useEffect(() => {
     if (isOrderSuccessOpen) {
@@ -45,6 +49,13 @@ export const OrderSuccessModal: React.FC = () => {
     navigator.clipboard?.writeText(lastPlacedOrder.trackingCode);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handleCopyPix = () => {
+    const currentKey = pixConfig?.key || 'pix@suculentospastelaria.com.br';
+    navigator.clipboard?.writeText(currentKey);
+    setCopiedPix(true);
+    setTimeout(() => setCopiedPix(false), 2000);
   };
 
   const handleTrackOrders = () => {
@@ -111,6 +122,52 @@ export const OrderSuccessModal: React.FC = () => {
             <span>{formatCurrency(lastPlacedOrder.totalAmount)}</span>
           </div>
         </div>
+
+        {/* Card de Pagamento PIX (Se o método escolhido foi PIX) */}
+        {lastPlacedOrder.paymentMethod === 'pix' && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-left text-xs space-y-3 mb-6 shadow-xs animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-emerald-950 font-black">
+                <QrCode className="w-4 h-4 text-emerald-600" />
+                <span>Efetue o Pagamento via PIX:</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 font-black text-[10px]">
+                {formatCurrency(lastPlacedOrder.totalAmount)}
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-stone-600">
+                  Chave PIX {pixConfig?.keyType === 'cpf' ? '(CPF)' : pixConfig?.keyType === 'cnpj' ? '(CNPJ)' : pixConfig?.keyType === 'telefone' ? '(Telefone)' : pixConfig?.keyType === 'aleatoria' ? '(Aleatória)' : '(E-mail)'}:
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyPix}
+                  className="flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-200/80 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                >
+                  {copiedPix ? <Check className="w-3.5 h-3.5 text-emerald-700" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedPix ? 'Chave Copiada!' : 'Copiar Chave PIX'}</span>
+                </button>
+              </div>
+
+              <code className="block p-2 rounded-xl bg-white border border-emerald-200 text-stone-900 font-mono font-bold text-[11px] select-all break-all">
+                {pixConfig?.key || 'pix@suculentospastelaria.com.br'}
+              </code>
+            </div>
+
+            {pixConfig?.receiverName && (
+              <div className="text-[11px] text-emerald-900 flex items-center justify-between pt-1 border-t border-emerald-200/60">
+                <span className="text-stone-600">Favorecido:</span>
+                <span className="font-bold">{pixConfig.receiverName}</span>
+              </div>
+            )}
+
+            <p className="text-[10px] text-emerald-800/80 italic">
+              {pixConfig?.instructions || 'O comprovante pode ser apresentado no momento da entrega do lanche.'}
+            </p>
+          </div>
+        )}
 
         {/* Informações Específicas de Entrega Delivery */}
         {lastPlacedOrder.orderType === 'delivery' && lastPlacedOrder.deliveryDetails && (

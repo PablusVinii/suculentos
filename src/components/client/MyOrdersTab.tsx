@@ -15,17 +15,20 @@ import {
   AlertCircle,
   ShoppingBag,
   Sparkles,
-  Truck,
   MapPin,
   Home,
   UserCheck,
+  Copy,
+  Check,
+  QrCode,
 } from 'lucide-react';
 
 export const MyOrdersTab: React.FC = () => {
-  const { orders, myOrderCodes, addMyOrderCode, setClientActiveTab } = useStore();
+  const { orders, myOrderCodes, addMyOrderCode, setClientActiveTab, pixConfig, showToast } = useStore();
   const [inputCode, setInputCode] = useState('');
   const [searchedCode, setSearchedCode] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [copiedPixId, setCopiedPixId] = useState<string | null>(null);
 
   // Pedidos deste cliente salvos na sessão/dispositivo local
   const mySavedOrders = (orders || []).filter((o) =>
@@ -253,14 +256,44 @@ export const MyOrdersTab: React.FC = () => {
         </div>
 
         {/* Total e Pagamento */}
-        <div className="flex items-center justify-between pt-3 border-t border-stone-100 text-xs text-stone-600">
-          <span>
-            Pagamento:{' '}
-            <strong className="uppercase text-stone-900 font-extrabold">
-              {order.paymentMethod}
-            </strong>
-            {order.changeFor && ` (Troco p/ ${formatCurrency(order.changeFor)})`}
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-3 border-t border-stone-100 text-xs text-stone-600">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>
+              Pagamento:{' '}
+              <strong className="uppercase text-stone-900 font-extrabold">
+                {order.paymentMethod}
+              </strong>
+              {order.changeFor && ` (Troco p/ ${formatCurrency(order.changeFor)})`}
+            </span>
+
+            {order.paymentMethod === 'pix' && (
+              <button
+                type="button"
+                onClick={() => {
+                  const k = pixConfig?.key || 'pix@suculentospastelaria.com.br';
+                  navigator.clipboard?.writeText(k);
+                  setCopiedPixId(order.id);
+                  showToast('📋 Chave PIX copiada para pagamento!');
+                  setTimeout(() => setCopiedPixId(null), 2000);
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-2 py-0.5 rounded-lg border border-emerald-300 transition-colors cursor-pointer"
+                title="Copiar chave PIX para efetuar o pagamento"
+              >
+                {copiedPixId === order.id ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-600" />
+                    <span>Chave Copiada!</span>
+                  </>
+                ) : (
+                  <>
+                    <QrCode className="w-3 h-3 text-emerald-600" />
+                    <span>Copiar PIX</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
           <span className="text-base font-black text-amber-600 font-display">
             {formatCurrency(order.totalAmount)}
           </span>

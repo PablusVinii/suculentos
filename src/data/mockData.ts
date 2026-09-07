@@ -1,4 +1,4 @@
-import { PastelSize, Ingredient, Product, Order } from '@/types';
+import { PastelSize, Ingredient, Product, Order, PixConfig } from '@/types';
 
 export const INITIAL_PASTEL_SIZES: PastelSize[] = [
   {
@@ -314,3 +314,13 @@ export const INITIAL_ORDERS: Order[] = [
     notes: 'Embalagem para viagem.',
   },
 ];
+
+export const INITIAL_PIX_CONFIG: PixConfig = {
+  key: 'pix@suculentospastelaria.com.br',
+  keyType: 'email',
+  receiverName: 'Suculentos Pastelaria LTDA',
+  city: 'São Paulo',
+  instructions: 'Chave oficial da pastelaria. O comprovante pode ser apresentado no momento da entrega ou no balcão.',
+  updatedAt: new Date().toISOString(),
+};
+

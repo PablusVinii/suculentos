@@ -6,12 +6,14 @@ import {
   Ingredient,
   Order,
   OrderStatus,
+  PixConfig,
   Product,
 } from '@/types';
 import {
   INITIAL_COMPLEMENTS,
   INITIAL_FLAVORS,
   INITIAL_ORDERS,
+  INITIAL_PIX_CONFIG,
   INITIAL_PRODUCTS,
   INITIAL_SAUCES,
 } from '@/data/mockData';
@@ -55,6 +57,7 @@ interface ServerDatabase {
   ingredients: Ingredient[];
   products: Product[];
   users: AdminUser[];
+  pixConfig: PixConfig;
   lastUpdated: string;
 }
 
@@ -112,6 +115,7 @@ function getInitialDatabase(): ServerDatabase {
     ingredients: ALL_INITIAL_INGREDIENTS,
     products: INITIAL_PRODUCTS,
     users: DEFAULT_ADMIN_USERS,
+    pixConfig: INITIAL_PIX_CONFIG,
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -149,6 +153,9 @@ async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
           const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
           if (parsed && Array.isArray(parsed.orders)) {
             parsed.orders = parsed.orders.map(sanitizeOrder);
+            if (!parsed.pixConfig) {
+              parsed.pixConfig = INITIAL_PIX_CONFIG;
+            }
             return parsed as ServerDatabase;
           }
         }
@@ -189,6 +196,9 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
   // Tenta carregar do KV se existir
   const cloudData = await fetchCloudDatabase();
   if (cloudData && Array.isArray(cloudData.orders)) {
+    if (!cloudData.pixConfig) {
+      cloudData.pixConfig = INITIAL_PIX_CONFIG;
+    }
     global.__suculentos_db = cloudData;
     global.__suculentos_last_fetch = now;
     try {
@@ -204,6 +214,9 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
       const parsed = JSON.parse(raw) as ServerDatabase;
       if (parsed && Array.isArray(parsed.orders)) {
         parsed.orders = parsed.orders.map(sanitizeOrder);
+        if (!parsed.pixConfig) {
+          parsed.pixConfig = INITIAL_PIX_CONFIG;
+        }
         global.__suculentos_db = parsed;
         return parsed;
       }
@@ -211,6 +224,9 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
   } catch (err) {}
 
   if (global.__suculentos_db) {
+    if (!global.__suculentos_db.pixConfig) {
+      global.__suculentos_db.pixConfig = INITIAL_PIX_CONFIG;
+    }
     return global.__suculentos_db;
   }
 
@@ -365,6 +381,29 @@ export const serverStorage = {
     });
   },
 
+  // --- Chave PIX ---
+  async getPixConfig(): Promise<PixConfig> {
+    const db = await loadDatabaseAsync();
+    return db.pixConfig || INITIAL_PIX_CONFIG;
+  },
+
+  async updatePixConfig(pixConfig: PixConfig): Promise<PixConfig> {
+    const db = await loadDatabaseAsync();
+    const updated: PixConfig = {
+      ...pixConfig,
+      updatedAt: new Date().toISOString(),
+    };
+    db.pixConfig = updated;
+    saveDatabase(db);
+
+    broadcastRealtimeEvent({
+      type: 'PIX_UPDATE',
+      pixConfig: updated,
+    });
+
+    return updated;
+  },
+
   // --- Sincronização Geral ---
   async getSyncData() {
     const db = await loadDatabaseAsync();
@@ -373,6 +412,7 @@ export const serverStorage = {
       ingredients: db.ingredients,
       products: db.products,
       users: db.users,
+      pixConfig: db.pixConfig || INITIAL_PIX_CONFIG,
       lastUpdated: db.lastUpdated,
     };
   },

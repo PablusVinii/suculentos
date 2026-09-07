@@ -6,6 +6,7 @@ import { KitchenKanban } from './KitchenKanban';
 import { StockManager } from './StockManager';
 import { SalesStats } from './SalesStats';
 import { UserManager } from './UserManager';
+import { PixConfigManager } from './PixConfigManager';
 import { NewOrderAlertModal } from './NewOrderAlertModal';
 import { ThermalReceiptModal } from './ThermalReceiptModal';
 import { syncManager } from '@/utils/sync';
@@ -16,6 +17,7 @@ import {
   SlidersHorizontal,
   BarChart3,
   Users,
+  QrCode,
   LogOut,
   ExternalLink,
   Volume2,
@@ -254,6 +256,26 @@ export const AdminDashboard: React.FC = () => {
                 {adminUsers.length}
               </span>
             </button>
+
+            <button
+              id="admin-tab-pix"
+              onClick={() => setAdminActiveTab('pix')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all ${
+                adminActiveTab === 'pix'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                  : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
+              }`}
+            >
+              <QrCode className="w-4 h-4" />
+              <span>Chave PIX</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  adminActiveTab === 'pix' ? 'bg-white text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                }`}
+              >
+                ⚡ Live
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -264,6 +286,7 @@ export const AdminDashboard: React.FC = () => {
         {adminActiveTab === 'stock' && <StockManager />}
         {adminActiveTab === 'stats' && <SalesStats />}
         {adminActiveTab === 'users' && <UserManager />}
+        {adminActiveTab === 'pix' && <PixConfigManager />}
       </main>
 
       {/* Popup de Alerta de Novo Pedido em Tempo Real */}

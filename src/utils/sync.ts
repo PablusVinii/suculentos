@@ -1,11 +1,12 @@
-import { Ingredient, Order, OrderStatus, Product } from '@/types';
+import { Ingredient, Order, OrderStatus, PixConfig, Product } from '@/types';
 
 export type SyncMessage =
   | { type: 'NEW_ORDER'; order: Order }
   | { type: 'ORDER_STATUS_UPDATE'; orderId: string; status: OrderStatus; order?: Order }
   | { type: 'ORDER_DELETED'; orderId: string }
   | { type: 'STOCK_UPDATE'; ingredients: Ingredient[]; products: Product[] }
-  | { type: 'USERS_UPDATE'; users: any[] };
+  | { type: 'USERS_UPDATE'; users: any[] }
+  | { type: 'PIX_UPDATE'; pixConfig: PixConfig };
 
 class CrossTabSyncManager {
   private channel: BroadcastChannel | null = null;

@@ -33,6 +33,7 @@ export const CheckoutModal: React.FC = () => {
     setIsCheckoutOpen,
     getCartTotal,
     createOrder,
+    pixConfig,
   } = useStore();
 
   const [customerName, setCustomerName] = useState('');
@@ -64,7 +65,8 @@ export const CheckoutModal: React.FC = () => {
     paymentMethod === 'dinheiro' && changeForNumber > 0 && changeForNumber < totalAmount;
 
   const handleCopyPix = () => {
-    navigator.clipboard?.writeText('pix@suculentospastelaria.com.br');
+    const currentKey = pixConfig?.key || 'pix@suculentospastelaria.com.br';
+    navigator.clipboard?.writeText(currentKey);
     setCopiedPix(true);
     setTimeout(() => setCopiedPix(false), 2000);
   };
@@ -433,21 +435,29 @@ export const CheckoutModal: React.FC = () => {
               {paymentMethod === 'pix' && (
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-stone-800">Chave PIX (E-mail):</span>
+                    <span className="font-extrabold text-stone-800">
+                      Chave PIX {pixConfig?.keyType === 'cpf' ? '(CPF)' : pixConfig?.keyType === 'cnpj' ? '(CNPJ)' : pixConfig?.keyType === 'telefone' ? '(Celular / WhatsApp)' : pixConfig?.keyType === 'aleatoria' ? '(Aleatória)' : '(E-mail)'}:
+                    </span>
                     <button
                       type="button"
                       onClick={handleCopyPix}
-                      className="flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-100/80 px-2 py-1 rounded-lg transition-colors"
+                      className="flex items-center gap-1 text-[11px] font-bold text-amber-700 hover:text-amber-800 bg-amber-100/80 px-2 py-1 rounded-lg transition-colors cursor-pointer"
                     >
                       {copiedPix ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copiedPix ? 'Copiado!' : 'Copiar Chave'}</span>
                     </button>
                   </div>
-                  <code className="block p-2 rounded-xl bg-white border border-stone-200 text-[11px] text-stone-700 font-mono select-all">
-                    pix@suculentospastelaria.com.br
+                  <code className="block p-2.5 rounded-xl bg-white border border-stone-200 text-[11px] text-stone-800 font-mono font-bold select-all break-all shadow-xs">
+                    {pixConfig?.key || 'pix@suculentospastelaria.com.br'}
                   </code>
+                  {pixConfig?.receiverName && (
+                    <div className="text-[11px] text-stone-600 flex items-center justify-between pt-0.5">
+                      <span>Favorecido:</span>
+                      <span className="font-bold text-stone-800">{pixConfig.receiverName}</span>
+                    </div>
+                  )}
                   <p className="text-[11px] text-stone-500">
-                    O comprovante pode ser apresentado no momento da entrega do lanche.
+                    {pixConfig?.instructions || 'O comprovante pode ser apresentado no momento da entrega do lanche.'}
                   </p>
                 </div>
               )}

@@ -98,3 +98,14 @@ export interface AdminUser {
   createdAt: string;
   lastLogin?: string;
 }
+
+export type PixKeyType = 'cpf' | 'cnpj' | 'email' | 'telefone' | 'aleatoria';
+
+export interface PixConfig {
+  key: string;
+  keyType: PixKeyType;
+  receiverName: string;
+  city?: string;
+  instructions?: string;
+  updatedAt?: string;
+}

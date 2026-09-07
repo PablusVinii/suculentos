@@ -7,6 +7,7 @@ import {
   Order,
   OrderStatus,
   PastelSize,
+  PixConfig,
   Product,
 } from '@/types';
 import {
@@ -14,6 +15,7 @@ import {
   INITIAL_FLAVORS,
   INITIAL_ORDERS,
   INITIAL_PASTEL_SIZES,
+  INITIAL_PIX_CONFIG,
   INITIAL_PRODUCTS,
   INITIAL_SAUCES,
 } from '@/data/mockData';
@@ -62,7 +64,7 @@ interface StoreState {
 
   // --- Vista / Navegação ---
   clientActiveTab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos';
-  adminActiveTab: 'kanban' | 'stock' | 'stats' | 'users';
+  adminActiveTab: 'kanban' | 'stock' | 'stats' | 'users' | 'pix';
   isCartOpen: boolean;
   isCheckoutOpen: boolean;
   isOrderSuccessOpen: boolean;
@@ -79,6 +81,11 @@ interface StoreState {
   pastelSizes: PastelSize[];
   ingredients: Ingredient[];
   products: Product[];
+
+  // --- Chave PIX ---
+  pixConfig: PixConfig;
+  updatePixConfig: (config: PixConfig) => void;
+  resetPixConfigToDefault: () => void;
 
   // --- Construtor de Pastel Wizard ---
   builderStep: 1 | 2 | 3 | 4;
@@ -97,7 +104,7 @@ interface StoreState {
 
   // --- Ações de Navegação e UI ---
   setClientActiveTab: (tab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos') => void;
-  setAdminActiveTab: (tab: 'kanban' | 'stock' | 'stats' | 'users') => void;
+  setAdminActiveTab: (tab: 'kanban' | 'stock' | 'stats' | 'users' | 'pix') => void;
   setIsCartOpen: (open: boolean) => void;
   setIsCheckoutOpen: (open: boolean) => void;
   setIsOrderSuccessOpen: (open: boolean) => void;
@@ -244,6 +251,21 @@ function apiPutUsers(users: AdminUser[]) {
   }
 }
 
+function apiPutPix(pixConfig: PixConfig) {
+  if (typeof window !== 'undefined') {
+    fetch('/api/pix', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pixConfig }),
+    }).catch((e) => console.warn('Failed to sync pix to server:', e));
+
+    emitCloudRealtime({
+      type: 'PIX_UPDATE',
+      pixConfig,
+    });
+  }
+}
+
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
@@ -370,6 +392,7 @@ export const useStore = create<StoreState>()(
       pastelSizes: INITIAL_PASTEL_SIZES,
       ingredients: ALL_INITIAL_INGREDIENTS,
       products: INITIAL_PRODUCTS,
+      pixConfig: INITIAL_PIX_CONFIG,
 
       builderStep: 1,
       builderSize: INITIAL_PASTEL_SIZES[1], // 5 Sabores por padrão
@@ -743,6 +766,44 @@ export const useStore = create<StoreState>()(
         get().showToast('🔄 Estoque e catálogo restaurados para o padrão.');
       },
 
+      // --- Chave PIX ---
+      updatePixConfig: (config) => {
+        const updated: PixConfig = {
+          ...config,
+          key: config.key.trim(),
+          receiverName: config.receiverName.trim(),
+          city: config.city?.trim() || undefined,
+          instructions: config.instructions?.trim() || undefined,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({ pixConfig: updated });
+
+        // 1. Sincroniza via BroadcastChannel (mesmo aparelho / abas locais)
+        syncManager.broadcast({
+          type: 'PIX_UPDATE',
+          pixConfig: updated,
+        });
+
+        // 2. Sincroniza via Servidor Cloud e SSE (para outros aparelhos)
+        apiPutPix(updated);
+
+        get().showToast('💳 Chave PIX atualizada e sincronizada com sucesso!');
+      },
+
+      resetPixConfigToDefault: () => {
+        set({ pixConfig: INITIAL_PIX_CONFIG });
+
+        syncManager.broadcast({
+          type: 'PIX_UPDATE',
+          pixConfig: INITIAL_PIX_CONFIG,
+        });
+
+        apiPutPix(INITIAL_PIX_CONFIG);
+
+        get().showToast('🔄 Configuração PIX restaurada para os padrões.');
+      },
+
       // --- Pedidos (Kanban) ---
       createOrder: (orderData) => {
         const { cart, orders, myOrderCodes, soundEnabled } = get();
@@ -888,6 +949,7 @@ export const useStore = create<StoreState>()(
         myOrderCodes: state.myOrderCodes,
         ingredients: state.ingredients,
         products: state.products,
+        pixConfig: state.pixConfig,
         soundEnabled: state.soundEnabled,
       }),
     }

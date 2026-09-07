@@ -102,8 +102,12 @@ export const OrderCard: React.FC<OrderCardProps> = ({
 
         {/* Meio de Pagamento & Troco */}
         <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-200/60 text-xs">
-          <span className="font-extrabold uppercase px-2 py-0.5 rounded-md bg-stone-200 text-stone-700 text-[10px]">
-            {order.paymentMethod}
+          <span className={`font-extrabold uppercase px-2 py-0.5 rounded-md text-[10px] ${
+            order.paymentMethod === 'pix'
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-black'
+              : 'bg-stone-200 text-stone-700'
+          }`}>
+            {order.paymentMethod === 'pix' ? '⚡ PIX' : order.paymentMethod}
           </span>
           {order.paymentMethod === 'dinheiro' && (
             <span className="text-[11px] font-bold text-emerald-700">
