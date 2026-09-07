@@ -13,6 +13,7 @@ import { OrderSuccessModal } from '@/components/client/OrderSuccessModal';
 import { ClientStatusAlertModal } from '@/components/client/ClientStatusAlertModal';
 import { formatCurrency } from '@/utils/format';
 import { syncManager } from '@/utils/sync';
+import { serverSync } from '@/utils/apiSync';
 import { ArrowRight, Heart, CheckCircle2, Lock } from 'lucide-react';
 import Link from 'next/link';
 
@@ -32,7 +33,10 @@ export default function HomePage() {
   useEffect(() => {
     setMounted(true);
 
-    // Escuta atualizações de status vindas da cozinha/admin em tempo real
+    // Inicia sincronização na nuvem a cada 3 segundos
+    serverSync.startPolling(3000);
+
+    // Escuta atualizações de status vindas da cozinha/admin em tempo real local
     const unsubscribe = syncManager.subscribe((msg) => {
       if (msg.type === 'ORDER_STATUS_UPDATE') {
         const { myOrderCodes } = useStore.getState();
@@ -68,6 +72,7 @@ export default function HomePage() {
     });
 
     return () => {
+      serverSync.stopPolling();
       unsubscribe();
     };
   }, []);

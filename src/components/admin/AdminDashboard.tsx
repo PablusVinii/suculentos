@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+import { serverSync } from '@/utils/apiSync';
+
 export const AdminDashboard: React.FC = () => {
   const {
     adminActiveTab,
@@ -41,8 +43,11 @@ export const AdminDashboard: React.FC = () => {
 
   const [selectedPrintOrder, setSelectedPrintOrder] = useState<Order | null>(null);
 
-  // Escuta eventos em tempo real vindos da aba do cliente
+  // Escuta eventos em tempo real locais e sincroniza com a nuvem (Vercel / Multi-dispositivos)
   useEffect(() => {
+    // Inicia sincronização na nuvem a cada 2 segundos
+    serverSync.startPolling(2000);
+
     const unsubscribe = syncManager.subscribe((msg) => {
       if (msg.type === 'NEW_ORDER') {
         const newOrder = msg.order;
@@ -69,6 +74,7 @@ export const AdminDashboard: React.FC = () => {
     });
 
     return () => {
+      serverSync.stopPolling();
       unsubscribe();
     };
   }, []);

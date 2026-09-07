@@ -163,6 +163,46 @@ function generate6DigitCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function apiPostOrder(order: Order) {
+  if (typeof window !== 'undefined') {
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    }).catch((e) => console.warn('Failed to sync order to server:', e));
+  }
+}
+
+function apiPatchOrderStatus(orderId: string, status: OrderStatus) {
+  if (typeof window !== 'undefined') {
+    fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }).catch((e) => console.warn('Failed to sync status to server:', e));
+  }
+}
+
+function apiPutStock(ingredients: Ingredient[], products: Product[]) {
+  if (typeof window !== 'undefined') {
+    fetch('/api/stock', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ingredients, products }),
+    }).catch((e) => console.warn('Failed to sync stock to server:', e));
+  }
+}
+
+function apiPutUsers(users: AdminUser[]) {
+  if (typeof window !== 'undefined') {
+    fetch('/api/users', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users }),
+    }).catch((e) => console.warn('Failed to sync users to server:', e));
+  }
+}
+
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
@@ -193,6 +233,7 @@ export const useStore = create<StoreState>()(
             adminUser: { ...found, lastLogin: nowIso },
             adminUsers: updatedUsers,
           });
+          apiPutUsers(updatedUsers);
           return true;
         }
 
@@ -226,9 +267,9 @@ export const useStore = create<StoreState>()(
           createdAt: new Date().toISOString(),
         };
 
-        set({
-          adminUsers: [...adminUsers, newUser],
-        });
+        const updated = [...adminUsers, newUser];
+        set({ adminUsers: updated });
+        apiPutUsers(updated);
         get().showToast(`👤 Usuário "${newUser.name}" criado com sucesso!`);
       },
 
@@ -241,6 +282,7 @@ export const useStore = create<StoreState>()(
           adminUsers: updated,
           adminUser: updatedCurrent,
         });
+        apiPutUsers(updated);
         get().showToast('✅ Dados do usuário atualizados com sucesso!');
       },
 
@@ -256,9 +298,9 @@ export const useStore = create<StoreState>()(
           return;
         }
 
-        set({
-          adminUsers: adminUsers.filter((u) => u.id !== id),
-        });
+        const updated = adminUsers.filter((u) => u.id !== id);
+        set({ adminUsers: updated });
+        apiPutUsers(updated);
         get().showToast('🗑️ Usuário removido com sucesso.');
       },
 
@@ -266,6 +308,7 @@ export const useStore = create<StoreState>()(
         set({
           adminUsers: DEFAULT_ADMIN_USERS,
         });
+        apiPutUsers(DEFAULT_ADMIN_USERS);
         get().showToast('🔄 Lista de usuários restaurada para o padrão inicial.');
       },
 
@@ -508,6 +551,7 @@ export const useStore = create<StoreState>()(
             ingredients: updated,
             products: state.products,
           });
+          apiPutStock(updated, state.products);
 
           return {
             ingredients: updated,
@@ -529,6 +573,7 @@ export const useStore = create<StoreState>()(
             ingredients: state.ingredients,
             products: updated,
           });
+          apiPutStock(state.ingredients, updated);
 
           return { products: updated };
         });
@@ -552,6 +597,7 @@ export const useStore = create<StoreState>()(
           ingredients: updated,
           products,
         });
+        apiPutStock(updated, products);
         get().showToast(`✨ "${newIngredient.name}" adicionado ao cardápio!`);
       },
 
@@ -564,6 +610,7 @@ export const useStore = create<StoreState>()(
           ingredients: updated,
           products,
         });
+        apiPutStock(updated, products);
         get().showToast(`✅ Item atualizado com sucesso!`);
       },
 
@@ -582,6 +629,7 @@ export const useStore = create<StoreState>()(
           ingredients: updated,
           products,
         });
+        apiPutStock(updated, products);
         get().showToast(`🗑️ "${target?.name || 'Item'}" removido com sucesso.`);
       },
 
@@ -606,6 +654,7 @@ export const useStore = create<StoreState>()(
           ingredients,
           products: updated,
         });
+        apiPutStock(ingredients, updated);
         get().showToast(`✨ Produto "${newProduct.name}" cadastrado!`);
       },
 
@@ -618,6 +667,7 @@ export const useStore = create<StoreState>()(
           ingredients,
           products: updated,
         });
+        apiPutStock(ingredients, updated);
         get().showToast(`✅ Produto atualizado com sucesso!`);
       },
 
@@ -634,6 +684,7 @@ export const useStore = create<StoreState>()(
           ingredients,
           products: updated,
         });
+        apiPutStock(ingredients, updated);
         get().showToast(`🗑️ Produto "${target?.name || ''}" removido.`);
       },
 
@@ -647,6 +698,7 @@ export const useStore = create<StoreState>()(
           ingredients: ALL_INITIAL_INGREDIENTS,
           products: INITIAL_PRODUCTS,
         });
+        apiPutStock(ALL_INITIAL_INGREDIENTS, INITIAL_PRODUCTS);
         get().showToast('🔄 Estoque e catálogo restaurados para o padrão.');
       },
 
@@ -692,11 +744,14 @@ export const useStore = create<StoreState>()(
           lastPlacedOrder: newOrder,
         });
 
-        // Dispara sincronização em tempo real para o admin
+        // 1. Sincroniza via BroadcastChannel local (mesmo aparelho)
         syncManager.broadcast({
           type: 'NEW_ORDER',
           order: newOrder,
         });
+
+        // 2. Sincroniza via Servidor Cloud (para outros aparelhos / Vercel)
+        apiPostOrder(newOrder);
 
         if (soundEnabled) {
           playNewOrderChime();
@@ -712,7 +767,7 @@ export const useStore = create<StoreState>()(
 
         set({ orders: updated });
 
-        // Dispara para todas as abas, inclusive a do cliente
+        // 1. Sincroniza via BroadcastChannel
         if (targetOrder) {
           syncManager.broadcast({
             type: 'ORDER_STATUS_UPDATE',
@@ -721,6 +776,9 @@ export const useStore = create<StoreState>()(
             order: targetOrder,
           });
         }
+
+        // 2. Sincroniza com o servidor na nuvem
+        apiPatchOrderStatus(orderId, status);
       },
 
       cancelOrder: (orderId) => {
@@ -740,6 +798,8 @@ export const useStore = create<StoreState>()(
             order: targetOrder,
           });
         }
+
+        apiPatchOrderStatus(orderId, 'cancelado');
       },
 
       addMyOrderCode: (code) => {
