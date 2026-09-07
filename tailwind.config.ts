@@ -38,6 +38,7 @@ const config: Config = {
         'bounce-subtle': 'bounce 2s infinite',
         'fade-in': 'fadeIn 0.25s ease-out forwards',
         'slide-up': 'slideUp 0.3s ease-out forwards',
+        'slide-right': 'slideRight 0.3s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
@@ -47,7 +48,11 @@ const config: Config = {
         slideUp: {
           '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
-        }
+        },
+        slideRight: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
       }
     },
   },

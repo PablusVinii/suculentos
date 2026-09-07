@@ -7,6 +7,7 @@ import { CategoryTabs } from '@/components/client/CategoryTabs';
 import { PastelBuilder } from '@/components/client/PastelBuilder';
 import { QuickProductList } from '@/components/client/QuickProductList';
 import { MyOrdersTab } from '@/components/client/MyOrdersTab';
+import { ClientSidebarDrawer } from '@/components/client/ClientSidebarDrawer';
 import { CartDrawer } from '@/components/client/CartDrawer';
 import { CheckoutModal } from '@/components/client/CheckoutModal';
 import { OrderSuccessModal } from '@/components/client/OrderSuccessModal';
@@ -157,6 +158,7 @@ export default function HomePage() {
       </main>
 
       {/* Modais Globais do Cliente */}
+      <ClientSidebarDrawer />
       <CartDrawer />
       <CheckoutModal />
       <OrderSuccessModal />

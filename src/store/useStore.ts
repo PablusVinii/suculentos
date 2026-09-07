@@ -65,6 +65,7 @@ interface StoreState {
   // --- Vista / Navegação ---
   clientActiveTab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos';
   adminActiveTab: 'kanban' | 'stock' | 'stats' | 'users' | 'pix';
+  isSideMenuOpen: boolean;
   isCartOpen: boolean;
   isCheckoutOpen: boolean;
   isOrderSuccessOpen: boolean;
@@ -105,6 +106,8 @@ interface StoreState {
   // --- Ações de Navegação e UI ---
   setClientActiveTab: (tab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos') => void;
   setAdminActiveTab: (tab: 'kanban' | 'stock' | 'stats' | 'users' | 'pix') => void;
+  setIsSideMenuOpen: (open: boolean) => void;
+  toggleSideMenu: () => void;
   setIsCartOpen: (open: boolean) => void;
   setIsCheckoutOpen: (open: boolean) => void;
   setIsOrderSuccessOpen: (open: boolean) => void;
@@ -378,6 +381,7 @@ export const useStore = create<StoreState>()(
       // --- Navegação & UI ---
       clientActiveTab: 'pastel',
       adminActiveTab: 'kanban',
+      isSideMenuOpen: false,
       isCartOpen: false,
       isCheckoutOpen: false,
       isOrderSuccessOpen: false,
@@ -407,6 +411,8 @@ export const useStore = create<StoreState>()(
 
       setClientActiveTab: (tab) => set({ clientActiveTab: tab }),
       setAdminActiveTab: (tab) => set({ adminActiveTab: tab }),
+      setIsSideMenuOpen: (open) => set({ isSideMenuOpen: open }),
+      toggleSideMenu: () => set((state) => ({ isSideMenuOpen: !state.isSideMenuOpen })),
       setIsCartOpen: (open) => set({ isCartOpen: open }),
       setIsCheckoutOpen: (open) => set({ isCheckoutOpen: open }),
       setIsOrderSuccessOpen: (open) => set({ isOrderSuccessOpen: open }),

@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { useStore } from '@/store/useStore';
-import { Sparkles, UtensilsCrossed, CupSoda, ClipboardList } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, CupSoda, ClipboardList, Menu } from 'lucide-react';
 
 export const CategoryTabs: React.FC = () => {
-  const { clientActiveTab, setClientActiveTab, orders } = useStore();
+  const { clientActiveTab, setClientActiveTab, orders, setIsSideMenuOpen } = useStore();
 
   const myOrdersCount = orders.length;
 
@@ -47,6 +47,19 @@ export const CategoryTabs: React.FC = () => {
     <div className="w-full bg-white border-b border-stone-200/80 sticky top-20 z-30 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-2 overflow-x-auto py-3 no-scrollbar">
+          {/* Botão para Expandir Menu Lateral */}
+          <button
+            id="category-expand-side-menu-button"
+            onClick={() => setIsSideMenuOpen(true)}
+            className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-stone-900 to-stone-800 text-white hover:from-amber-600 hover:to-orange-600 text-xs sm:text-sm font-extrabold transition-all shrink-0 shadow-md active:scale-95 group cursor-pointer"
+            title="Expandir Menu Lateral com Todas as Opções"
+          >
+            <Menu className="w-4 h-4 text-amber-400 group-hover:rotate-90 transition-transform duration-300" />
+            <span className="font-display">Menu Lateral</span>
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          </button>
+
+          <div className="h-6 w-px bg-stone-200 shrink-0 mx-1"></div>
           {tabs.map((tab) => {
             const isActive = clientActiveTab === tab.id;
             return (
