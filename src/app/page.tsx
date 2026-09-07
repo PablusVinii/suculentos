@@ -72,6 +72,10 @@ export default function HomePage() {
           ingredients: msg.ingredients,
           products: msg.products,
         });
+      } else if (msg.type === 'PIX_UPDATE') {
+        useStore.setState({ pixConfig: msg.pixConfig });
+      } else if (msg.type === 'USERS_UPDATE') {
+        useStore.setState({ adminUsers: msg.users });
       }
     });
 
