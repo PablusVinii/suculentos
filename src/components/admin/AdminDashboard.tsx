@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { KitchenKanban } from './KitchenKanban';
+import { OrderHistoryAuditory } from './OrderHistoryAuditory';
 import { StockManager } from './StockManager';
 import { SalesStats } from './SalesStats';
 import { UserManager } from './UserManager';
@@ -14,6 +15,7 @@ import { Order } from '@/types';
 import {
   ChefHat,
   Kanban,
+  History,
   SlidersHorizontal,
   BarChart3,
   Users,
@@ -185,14 +187,14 @@ export const AdminDashboard: React.FC = () => {
             <button
               id="admin-tab-kanban"
               onClick={() => setAdminActiveTab('kanban')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                 adminActiveTab === 'kanban'
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
                   : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
               }`}
             >
               <Kanban className="w-4 h-4" />
-              <span>Kanban de Pedidos</span>
+              <span>Kanban da Cozinha</span>
               {activeOrdersCount > 0 && (
                 <span
                   className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
@@ -205,9 +207,29 @@ export const AdminDashboard: React.FC = () => {
             </button>
 
             <button
+              id="admin-tab-history"
+              onClick={() => setAdminActiveTab('history')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                adminActiveTab === 'history'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                  : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              <span>Histórico & Auditoria</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  adminActiveTab === 'history' ? 'bg-white text-amber-800' : 'bg-stone-200 text-stone-700'
+                }`}
+              >
+                {orders.length}
+              </span>
+            </button>
+
+            <button
               id="admin-tab-stock"
               onClick={() => setAdminActiveTab('stock')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                 adminActiveTab === 'stock'
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
                   : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
@@ -231,7 +253,7 @@ export const AdminDashboard: React.FC = () => {
             <button
               id="admin-tab-stats"
               onClick={() => setAdminActiveTab('stats')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                 adminActiveTab === 'stats'
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
                   : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
@@ -244,7 +266,7 @@ export const AdminDashboard: React.FC = () => {
             <button
               id="admin-tab-users"
               onClick={() => setAdminActiveTab('users')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                 adminActiveTab === 'users'
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
                   : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
@@ -264,7 +286,7 @@ export const AdminDashboard: React.FC = () => {
             <button
               id="admin-tab-pix"
               onClick={() => setAdminActiveTab('pix')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
                 adminActiveTab === 'pix'
                   ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
                   : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
@@ -287,6 +309,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Conteúdo da Aba Ativa */}
       <main className="flex-1 pb-16">
         {adminActiveTab === 'kanban' && <KitchenKanban />}
+        {adminActiveTab === 'history' && <OrderHistoryAuditory />}
         {adminActiveTab === 'stock' && <StockManager />}
         {adminActiveTab === 'stats' && <SalesStats />}
         {adminActiveTab === 'users' && <UserManager />}

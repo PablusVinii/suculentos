@@ -106,7 +106,8 @@ interface StoreState {
 
   // --- Ações de Navegação e UI ---
   setClientActiveTab: (tab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos') => void;
-  setAdminActiveTab: (tab: 'kanban' | 'stock' | 'stats' | 'users' | 'pix') => void;
+  setAdminActiveTab: (tab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix') => void;
+  adminActiveTab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix';
   setIsSideMenuOpen: (open: boolean) => void;
   toggleSideMenu: () => void;
   setIsCartOpen: (open: boolean) => void;

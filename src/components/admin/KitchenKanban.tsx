@@ -121,17 +121,14 @@ export const KitchenKanban: React.FC = () => {
             <span>+ Simular Novo Pedido</span>
           </button>
 
-          {/* Alternar Histórico de Entregues */}
+          {/* Botão para abrir Auditoria Completa */}
           <button
-            onClick={() => setShowDelivered(!showDelivered)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border text-xs font-bold transition-all ${
-              showDelivered
-                ? 'bg-stone-900 text-white border-stone-900'
-                : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
-            }`}
+            onClick={() => useStore.getState().setAdminActiveTab('history')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+            title="Abrir Histórico Completo de Auditoria Diária"
           >
-            <History className="w-4 h-4" />
-            <span>Histórico ({deliveredOrders.length})</span>
+            <History className="w-4 h-4 text-amber-400" />
+            <span>Auditoria & Histórico</span>
           </button>
         </div>
       </div>
