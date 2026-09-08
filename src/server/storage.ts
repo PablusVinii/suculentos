@@ -159,11 +159,15 @@ async function broadcastRealtimeEvent(payload: Record<string, any>) {
   }
 }
 
-// Carrega dados da Nuvem (Vercel KV / Upstash Redis se configurado, ou /tmp local)
+const DEFAULT_KV_URL = 'https://first-jennet-140670.upstash.io';
+const DEFAULT_KV_TOKEN = 'gQAAAAAAAiV-AAIgcDI0OGJkZjQ5MTRlM2E0YTI5ODAzNzhjYWEwYjRhOTlhMw';
+
+// Carrega dados da Nuvem (Vercel KV / Upstash Redis)
 async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
   try {
-    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || DEFAULT_KV_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || DEFAULT_KV_TOKEN;
+
     if (kvUrl && kvToken) {
       const kvRes = await fetch(`${kvUrl}/get/suculentos_master_db`, {
         headers: { Authorization: `Bearer ${kvToken}` },
@@ -173,24 +177,36 @@ async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
         const kvData = await kvRes.json();
         if (kvData && kvData.result) {
           const parsed = typeof kvData.result === 'string' ? JSON.parse(kvData.result) : kvData.result;
-          if (parsed && Array.isArray(parsed.orders)) {
-            parsed.orders = parsed.orders.filter((o: any) => !isTestOrder(o)).map(sanitizeOrder);
-            if (!parsed.pixConfig) {
-              parsed.pixConfig = INITIAL_PIX_CONFIG;
-            }
-            if (!parsed.storeSchedule) {
-              parsed.storeSchedule = INITIAL_STORE_SCHEDULE;
-            }
-            if (!Array.isArray(parsed.ingredients) || parsed.ingredients.length === 0) {
-              parsed.ingredients = ALL_INITIAL_INGREDIENTS;
-            }
-            if (!Array.isArray(parsed.products) || parsed.products.length === 0) {
-              parsed.products = INITIAL_PRODUCTS;
-            }
-            if (typeof parsed.stockUpdatedAt !== 'number') {
-              parsed.stockUpdatedAt = 0;
-            }
-            return parsed as ServerDatabase;
+          if (parsed && typeof parsed === 'object') {
+            const orders = Array.isArray(parsed.orders)
+              ? parsed.orders.filter((o: any) => !isTestOrder(o)).map(sanitizeOrder)
+              : [];
+            const ingredients =
+              Array.isArray(parsed.ingredients) && parsed.ingredients.length > 0
+                ? parsed.ingredients
+                : ALL_INITIAL_INGREDIENTS;
+            const products =
+              Array.isArray(parsed.products) && parsed.products.length > 0
+                ? parsed.products
+                : INITIAL_PRODUCTS;
+            const users =
+              Array.isArray(parsed.users) && parsed.users.length > 0
+                ? parsed.users
+                : DEFAULT_ADMIN_USERS;
+            const pixConfig = parsed.pixConfig || INITIAL_PIX_CONFIG;
+            const storeSchedule = parsed.storeSchedule || INITIAL_STORE_SCHEDULE;
+            const stockUpdatedAt = typeof parsed.stockUpdatedAt === 'number' ? parsed.stockUpdatedAt : 0;
+
+            return {
+              orders,
+              ingredients,
+              products,
+              users,
+              pixConfig,
+              storeSchedule,
+              lastUpdated: parsed.lastUpdated || new Date().toISOString(),
+              stockUpdatedAt,
+            };
           }
         }
       }
@@ -201,20 +217,21 @@ async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
   return null;
 }
 
-// Salva dados na Nuvem KV se configurado
+// Salva dados na Nuvem KV permanentemente
 async function persistCloudDatabase(db: ServerDatabase): Promise<void> {
   try {
-    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || DEFAULT_KV_URL;
+    const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || DEFAULT_KV_TOKEN;
+
     if (kvUrl && kvToken) {
-      fetch(`${kvUrl}/set/suculentos_master_db`, {
+      fetch(kvUrl, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${kvToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(db),
-      }).catch(() => {});
+        body: JSON.stringify(['SET', 'suculentos_master_db', JSON.stringify(db)]),
+      }).catch((e) => console.warn('Falha assíncrona ao persistir no Upstash Redis:', e));
     }
   } catch (_) {}
 }
