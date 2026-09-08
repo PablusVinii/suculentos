@@ -82,6 +82,7 @@ interface StoreState {
   pastelSizes: PastelSize[];
   ingredients: Ingredient[];
   products: Product[];
+  stockUpdatedAt: number;
 
   // --- Chave PIX ---
   pixConfig: PixConfig;
@@ -129,8 +130,6 @@ interface StoreState {
   setBuilderRecipientLabel: (label: string) => void;
   resetBuilder: () => void;
   addCustomPastelToCart: (options?: { quantity?: number; openCart?: boolean }) => void;
-
-  // --- Ações do Carrinho ---
   addQuickProductToCart: (product: Product, quantity?: number) => void;
   updateCartItemQuantity: (id: string, delta: number) => void;
   removeFromCart: (id: string) => void;
@@ -223,18 +222,20 @@ function apiPatchOrderStatus(orderId: string, status: OrderStatus, order?: Order
   }
 }
 
-function apiPutStock(ingredients: Ingredient[], products: Product[]) {
+function apiPutStock(ingredients: Ingredient[], products: Product[], stockUpdatedAt?: number) {
   if (typeof window !== 'undefined') {
+    const timestamp = stockUpdatedAt || Date.now();
     fetch('/api/stock', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ingredients, products }),
+      body: JSON.stringify({ ingredients, products, stockUpdatedAt: timestamp }),
     }).catch((e) => console.warn('Failed to sync stock to server:', e));
 
     emitCloudRealtime({
       type: 'STOCK_UPDATE',
       ingredients,
       products,
+      stockUpdatedAt: timestamp,
     });
   }
 }
@@ -396,6 +397,7 @@ export const useStore = create<StoreState>()(
       pastelSizes: INITIAL_PASTEL_SIZES,
       ingredients: ALL_INITIAL_INGREDIENTS,
       products: INITIAL_PRODUCTS,
+      stockUpdatedAt: 0,
       pixConfig: INITIAL_PIX_CONFIG,
 
       builderStep: 1,
@@ -616,18 +618,21 @@ export const useStore = create<StoreState>()(
             updated.find((i) => i.id === s.id)?.available
           );
 
+          const now = Date.now();
           syncManager.broadcast({
             type: 'STOCK_UPDATE',
             ingredients: updated,
             products: state.products,
+            stockUpdatedAt: now,
           });
-          apiPutStock(updated, state.products);
+          apiPutStock(updated, state.products, now);
 
           return {
             ingredients: updated,
             builderFlavors: newFlavors,
             builderComplements: newComplements,
             builderSauces: newSauces,
+            stockUpdatedAt: now,
           };
         });
       },
@@ -638,14 +643,16 @@ export const useStore = create<StoreState>()(
             prod.id === id ? { ...prod, available: !prod.available } : prod
           );
 
+          const now = Date.now();
           syncManager.broadcast({
             type: 'STOCK_UPDATE',
             ingredients: state.ingredients,
             products: updated,
+            stockUpdatedAt: now,
           });
-          apiPutStock(state.ingredients, updated);
+          apiPutStock(state.ingredients, updated, now);
 
-          return { products: updated };
+          return { products: updated, stockUpdatedAt: now };
         });
       },
 
@@ -661,26 +668,30 @@ export const useStore = create<StoreState>()(
           icon: data.icon?.trim() || undefined,
         };
         const updated = [...ingredients, newIngredient];
-        set({ ingredients: updated });
+        const now = Date.now();
+        set({ ingredients: updated, stockUpdatedAt: now });
         syncManager.broadcast({
           type: 'STOCK_UPDATE',
           ingredients: updated,
           products,
+          stockUpdatedAt: now,
         });
-        apiPutStock(updated, products);
+        apiPutStock(updated, products, now);
         get().showToast(`✨ "${newIngredient.name}" adicionado ao cardápio!`);
       },
 
       updateIngredient: (id, updates) => {
         const { ingredients, products } = get();
         const updated = ingredients.map((ing) => (ing.id === id ? { ...ing, ...updates } : ing));
-        set({ ingredients: updated });
+        const now = Date.now();
+        set({ ingredients: updated, stockUpdatedAt: now });
         syncManager.broadcast({
           type: 'STOCK_UPDATE',
           ingredients: updated,
           products,
+          stockUpdatedAt: now,
         });
-        apiPutStock(updated, products);
+        apiPutStock(updated, products, now);
         get().showToast(`✅ Item atualizado com sucesso!`);
       },
 
@@ -688,18 +699,21 @@ export const useStore = create<StoreState>()(
         const { ingredients, products, builderFlavors, builderComplements, builderSauces } = get();
         const target = ingredients.find((i) => i.id === id);
         const updated = ingredients.filter((ing) => ing.id !== id);
+        const now = Date.now();
         set({
           ingredients: updated,
           builderFlavors: builderFlavors.filter((f) => f.id !== id),
           builderComplements: builderComplements.filter((c) => c.id !== id),
           builderSauces: builderSauces.filter((s) => s.id !== id),
+          stockUpdatedAt: now,
         });
         syncManager.broadcast({
           type: 'STOCK_UPDATE',
           ingredients: updated,
           products,
+          stockUpdatedAt: now,
         });
-        apiPutStock(updated, products);
+        apiPutStock(updated, products, now);
         get().showToast(`🗑️ "${target?.name || 'Item'}" removido com sucesso.`);
       },
 
@@ -718,26 +732,30 @@ export const useStore = create<StoreState>()(
           unit: data.unit?.trim() || undefined,
         };
         const updated = [...products, newProduct];
-        set({ products: updated });
+        const now = Date.now();
+        set({ products: updated, stockUpdatedAt: now });
         syncManager.broadcast({
           type: 'STOCK_UPDATE',
           ingredients,
           products: updated,
+          stockUpdatedAt: now,
         });
-        apiPutStock(ingredients, updated);
+        apiPutStock(ingredients, updated, now);
         get().showToast(`✨ Produto "${newProduct.name}" cadastrado!`);
       },
 
       updateProduct: (id, updates) => {
         const { ingredients, products } = get();
         const updated = products.map((prod) => (prod.id === id ? { ...prod, ...updates } : prod));
-        set({ products: updated });
+        const now = Date.now();
+        set({ products: updated, stockUpdatedAt: now });
         syncManager.broadcast({
           type: 'STOCK_UPDATE',
           ingredients,
           products: updated,
+          stockUpdatedAt: now,
         });
-        apiPutStock(ingredients, updated);
+        apiPutStock(ingredients, updated, now);
         get().showToast(`✅ Produto atualizado com sucesso!`);
       },
 
@@ -745,30 +763,36 @@ export const useStore = create<StoreState>()(
         const { ingredients, products, cart } = get();
         const target = products.find((p) => p.id === id);
         const updated = products.filter((prod) => prod.id !== id);
+        const now = Date.now();
         set({
           products: updated,
           cart: cart.filter((item) => item.product?.id !== id),
+          stockUpdatedAt: now,
         });
         syncManager.broadcast({
           type: 'STOCK_UPDATE',
           ingredients,
           products: updated,
+          stockUpdatedAt: now,
         });
-        apiPutStock(ingredients, updated);
+        apiPutStock(ingredients, updated, now);
         get().showToast(`🗑️ Produto "${target?.name || ''}" removido.`);
       },
 
       resetStockToDefaults: () => {
+        const now = Date.now();
         set({
           ingredients: ALL_INITIAL_INGREDIENTS,
           products: INITIAL_PRODUCTS,
+          stockUpdatedAt: now,
         });
         syncManager.broadcast({
           type: 'STOCK_UPDATE',
           ingredients: ALL_INITIAL_INGREDIENTS,
           products: INITIAL_PRODUCTS,
+          stockUpdatedAt: now,
         });
-        apiPutStock(ALL_INITIAL_INGREDIENTS, INITIAL_PRODUCTS);
+        apiPutStock(ALL_INITIAL_INGREDIENTS, INITIAL_PRODUCTS, now);
         get().showToast('🔄 Estoque e catálogo restaurados para o padrão.');
       },
 
@@ -994,6 +1018,7 @@ export const useStore = create<StoreState>()(
         myOrderCodes: state.myOrderCodes,
         ingredients: state.ingredients,
         products: state.products,
+        stockUpdatedAt: state.stockUpdatedAt,
         pixConfig: state.pixConfig,
         soundEnabled: state.soundEnabled,
       }),

@@ -5,7 +5,7 @@ export type SyncMessage =
   | { type: 'NEW_ORDER'; order: Order }
   | { type: 'ORDER_STATUS_UPDATE'; orderId: string; status: OrderStatus; order?: Order }
   | { type: 'ORDER_DELETED'; orderId: string }
-  | { type: 'STOCK_UPDATE'; ingredients: Ingredient[]; products: Product[] }
+  | { type: 'STOCK_UPDATE'; ingredients: Ingredient[]; products: Product[]; stockUpdatedAt?: number }
   | { type: 'USERS_UPDATE'; users: any[] }
   | { type: 'PIX_UPDATE'; pixConfig: PixConfig };
 
@@ -47,7 +47,11 @@ class CrossTabSyncManager {
       if (msg.type === 'PIX_UPDATE' && msg.pixConfig) {
         useStore.setState({ pixConfig: msg.pixConfig });
       } else if (msg.type === 'STOCK_UPDATE' && msg.ingredients && msg.products) {
-        useStore.setState({ ingredients: msg.ingredients, products: msg.products });
+        useStore.setState({
+          ingredients: msg.ingredients,
+          products: msg.products,
+          stockUpdatedAt: msg.stockUpdatedAt || Date.now(),
+        });
       } else if (msg.type === 'USERS_UPDATE' && msg.users) {
         useStore.setState({ adminUsers: msg.users });
       }

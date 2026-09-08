@@ -17,17 +17,18 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ingredients, products } = body as {
+    const { ingredients, products, stockUpdatedAt } = body as {
       ingredients: Ingredient[];
       products: Product[];
+      stockUpdatedAt?: number;
     };
 
     if (!Array.isArray(ingredients) || !Array.isArray(products)) {
       return NextResponse.json({ error: 'Formato de estoque inválido' }, { status: 400 });
     }
 
-    await serverStorage.updateStock(ingredients, products);
-    return NextResponse.json({ success: true });
+    await serverStorage.updateStock(ingredients, products, stockUpdatedAt);
+    return NextResponse.json({ success: true, stockUpdatedAt: stockUpdatedAt || Date.now() });
   } catch (err) {
     console.error('Erro na rota PUT /api/stock:', err);
     return NextResponse.json({ error: 'Falha ao salvar estoque' }, { status: 500 });

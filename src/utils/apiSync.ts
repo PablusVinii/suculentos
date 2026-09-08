@@ -106,6 +106,7 @@ class ServerSyncManager {
             useStore.setState({
               ingredients: msg.ingredients,
               products: msg.products,
+              stockUpdatedAt: msg.stockUpdatedAt || Date.now(),
             });
           } else if (msg.type === 'USERS_UPDATE' && msg.users) {
             useStore.setState({
@@ -239,14 +240,58 @@ class ServerSyncManager {
       if (Array.isArray(serverIngs) && Array.isArray(serverProds)) {
         const currentIngs = state.ingredients;
         const currentProds = state.products;
-        if (
-          JSON.stringify(currentIngs) !== JSON.stringify(serverIngs) ||
-          JSON.stringify(currentProds) !== JSON.stringify(serverProds)
-        ) {
+        const serverStockUpdatedAt = typeof data.stockUpdatedAt === 'number' ? data.stockUpdatedAt : 0;
+        const localStockUpdatedAt = typeof state.stockUpdatedAt === 'number' ? state.stockUpdatedAt : 0;
+
+        // Se o servidor tem uma versão mais recente do estoque (atualizada por outro admin/dispositivo)
+        if (serverStockUpdatedAt > localStockUpdatedAt) {
           useStore.setState({
             ingredients: serverIngs,
             products: serverProds,
+            stockUpdatedAt: serverStockUpdatedAt,
           });
+        }
+        // Se o cliente local tem alterações mais recentes que o servidor ainda não salvou (ex: desativou produtos e recarregou a página)
+        else if (localStockUpdatedAt > serverStockUpdatedAt) {
+          // Não sobrescreve o local! Sincroniza o estoque local com o servidor para manter consistente
+          fetch('/api/stock', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ingredients: currentIngs,
+              products: currentProds,
+              stockUpdatedAt: localStockUpdatedAt,
+            }),
+          }).catch(() => {});
+        }
+        // Se ambos têm timestamps iguais (ou 0), mas há diferenças nos dados
+        else if (
+          JSON.stringify(currentIngs) !== JSON.stringify(serverIngs) ||
+          JSON.stringify(currentProds) !== JSON.stringify(serverProds)
+        ) {
+          // Se o local tem itens pausados ou customizados e o servidor veio com todos ativos (padrão), preserva o local
+          const localHasPaused = currentProds.some((p) => !p.available) || currentIngs.some((i) => !i.available);
+          const serverHasPaused = serverProds.some((p) => !p.available) || serverIngs.some((i) => !i.available);
+
+          if (localHasPaused && !serverHasPaused) {
+            const now = Date.now();
+            useStore.setState({ stockUpdatedAt: now });
+            fetch('/api/stock', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ingredients: currentIngs,
+                products: currentProds,
+                stockUpdatedAt: now,
+              }),
+            }).catch(() => {});
+          } else {
+            useStore.setState({
+              ingredients: serverIngs,
+              products: serverProds,
+              stockUpdatedAt: serverStockUpdatedAt || Date.now(),
+            });
+          }
         }
       }
 

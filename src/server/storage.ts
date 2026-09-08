@@ -59,6 +59,7 @@ interface ServerDatabase {
   users: AdminUser[];
   pixConfig: PixConfig;
   lastUpdated: string;
+  stockUpdatedAt?: number;
 }
 
 // Global in-memory cache
@@ -73,6 +74,7 @@ const MASTER_CLOUD_DB_ID = 'ff808181a067127101a07cb9db2c3a2e';
 const MASTER_CLOUD_DB_URL = `https://api.restful-api.dev/objects/${MASTER_CLOUD_DB_ID}`;
 const REALTIME_TOPIC_URL = 'https://ntfy.sh/suculentos_live_orders_v1';
 
+const LOCAL_PROJECT_DB_FILE = path.join(process.cwd(), '.suculentos_db.json');
 const DB_FILE_PATH = path.join(
   process.env.TMPDIR || os.tmpdir() || '/tmp',
   'suculentos_db_prod_v3.json'
@@ -132,6 +134,7 @@ function getInitialDatabase(): ServerDatabase {
     users: DEFAULT_ADMIN_USERS,
     pixConfig: INITIAL_PIX_CONFIG,
     lastUpdated: new Date().toISOString(),
+    stockUpdatedAt: 0,
   };
 }
 
@@ -171,6 +174,15 @@ async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
             if (!parsed.pixConfig) {
               parsed.pixConfig = INITIAL_PIX_CONFIG;
             }
+            if (!Array.isArray(parsed.ingredients) || parsed.ingredients.length === 0) {
+              parsed.ingredients = ALL_INITIAL_INGREDIENTS;
+            }
+            if (!Array.isArray(parsed.products) || parsed.products.length === 0) {
+              parsed.products = INITIAL_PRODUCTS;
+            }
+            if (typeof parsed.stockUpdatedAt !== 'number') {
+              parsed.stockUpdatedAt = 0;
+            }
             return parsed as ServerDatabase;
           }
         }
@@ -200,6 +212,42 @@ async function persistCloudDatabase(db: ServerDatabase): Promise<void> {
   } catch (_) {}
 }
 
+function parseAndValidateDb(raw: string): ServerDatabase | null {
+  try {
+    const parsed = JSON.parse(raw) as ServerDatabase;
+    if (parsed && typeof parsed === 'object') {
+      const orders = Array.isArray(parsed.orders)
+        ? parsed.orders.filter((o) => !isTestOrder(o)).map(sanitizeOrder)
+        : [];
+      const ingredients =
+        Array.isArray(parsed.ingredients) && parsed.ingredients.length > 0
+          ? parsed.ingredients
+          : ALL_INITIAL_INGREDIENTS;
+      const products =
+        Array.isArray(parsed.products) && parsed.products.length > 0
+          ? parsed.products
+          : INITIAL_PRODUCTS;
+      const users =
+        Array.isArray(parsed.users) && parsed.users.length > 0
+          ? parsed.users
+          : DEFAULT_ADMIN_USERS;
+      const pixConfig = parsed.pixConfig || INITIAL_PIX_CONFIG;
+      const stockUpdatedAt = typeof parsed.stockUpdatedAt === 'number' ? parsed.stockUpdatedAt : 0;
+
+      return {
+        orders,
+        ingredients,
+        products,
+        users,
+        pixConfig,
+        lastUpdated: parsed.lastUpdated || new Date().toISOString(),
+        stockUpdatedAt,
+      };
+    }
+  } catch (_) {}
+  return null;
+}
+
 async function loadDatabaseAsync(): Promise<ServerDatabase> {
   const now = Date.now();
   const lastFetch = global.__suculentos_last_fetch || 0;
@@ -211,38 +259,51 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
   // Tenta carregar do KV se existir
   const cloudData = await fetchCloudDatabase();
   if (cloudData && Array.isArray(cloudData.orders)) {
-    cloudData.orders = cloudData.orders.filter((o) => !isTestOrder(o));
-    if (!cloudData.pixConfig) {
-      cloudData.pixConfig = INITIAL_PIX_CONFIG;
-    }
     global.__suculentos_db = cloudData;
     global.__suculentos_last_fetch = now;
     try {
       fs.writeFileSync(DB_FILE_PATH, JSON.stringify(cloudData, null, 2), 'utf-8');
+      fs.writeFileSync(LOCAL_PROJECT_DB_FILE, JSON.stringify(cloudData, null, 2), 'utf-8');
     } catch (_) {}
     return cloudData;
   }
+
+  // Tenta carregar do arquivo do projeto local primeiro
+  try {
+    if (fs.existsSync(LOCAL_PROJECT_DB_FILE)) {
+      const raw = fs.readFileSync(LOCAL_PROJECT_DB_FILE, 'utf-8');
+      const parsed = parseAndValidateDb(raw);
+      if (parsed) {
+        global.__suculentos_db = parsed;
+        global.__suculentos_last_fetch = now;
+        return parsed;
+      }
+    }
+  } catch (_) {}
 
   // Tenta carregar de /tmp
   try {
     if (fs.existsSync(DB_FILE_PATH)) {
       const raw = fs.readFileSync(DB_FILE_PATH, 'utf-8');
-      const parsed = JSON.parse(raw) as ServerDatabase;
-      if (parsed && Array.isArray(parsed.orders)) {
-        parsed.orders = parsed.orders.filter((o) => !isTestOrder(o)).map(sanitizeOrder);
-        if (!parsed.pixConfig) {
-          parsed.pixConfig = INITIAL_PIX_CONFIG;
-        }
+      const parsed = parseAndValidateDb(raw);
+      if (parsed) {
         global.__suculentos_db = parsed;
+        global.__suculentos_last_fetch = now;
         return parsed;
       }
     }
-  } catch (err) {}
+  } catch (_) {}
 
   if (global.__suculentos_db) {
     global.__suculentos_db.orders = (global.__suculentos_db.orders || []).filter((o) => !isTestOrder(o));
     if (!global.__suculentos_db.pixConfig) {
       global.__suculentos_db.pixConfig = INITIAL_PIX_CONFIG;
+    }
+    if (!global.__suculentos_db.ingredients) {
+      global.__suculentos_db.ingredients = ALL_INITIAL_INGREDIENTS;
+    }
+    if (!global.__suculentos_db.products) {
+      global.__suculentos_db.products = INITIAL_PRODUCTS;
     }
     return global.__suculentos_db;
   }
@@ -261,9 +322,16 @@ function saveDatabase(db: ServerDatabase): void {
   global.__suculentos_db = db;
   global.__suculentos_last_fetch = Date.now();
 
+  const data = JSON.stringify(db, null, 2);
+
+  // Salva no arquivo do projeto local se possível
+  try {
+    fs.writeFileSync(LOCAL_PROJECT_DB_FILE, data, 'utf-8');
+  } catch (_) {}
+
   // Salva no /tmp local
   try {
-    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(db, null, 2), 'utf-8');
+    fs.writeFileSync(DB_FILE_PATH, data, 'utf-8');
   } catch (_) {}
 
   // Persiste na nuvem de forma assíncrona
@@ -367,27 +435,31 @@ export const serverStorage = {
   },
 
   // --- Estoque e Cardápio ---
-  async getStock(): Promise<{ ingredients: Ingredient[]; products: Product[] }> {
+  async getStock(): Promise<{ ingredients: Ingredient[]; products: Product[]; stockUpdatedAt: number }> {
     const db = await loadDatabaseAsync();
     return {
-      ingredients: db.ingredients,
-      products: db.products,
+      ingredients: db.ingredients || ALL_INITIAL_INGREDIENTS,
+      products: db.products || INITIAL_PRODUCTS,
+      stockUpdatedAt: db.stockUpdatedAt || 0,
     };
   },
 
   async updateStock(
     ingredients: Ingredient[],
-    products: Product[]
+    products: Product[],
+    stockUpdatedAt?: number
   ): Promise<void> {
     const db = await loadDatabaseAsync();
     db.ingredients = ingredients;
     db.products = products;
+    db.stockUpdatedAt = stockUpdatedAt || Date.now();
     saveDatabase(db);
 
     broadcastRealtimeEvent({
       type: 'STOCK_UPDATE',
       ingredients,
       products,
+      stockUpdatedAt: db.stockUpdatedAt,
     });
   },
 
@@ -436,11 +508,12 @@ export const serverStorage = {
     const db = await loadDatabaseAsync();
     return {
       orders: db.orders,
-      ingredients: db.ingredients,
-      products: db.products,
-      users: db.users,
+      ingredients: db.ingredients || ALL_INITIAL_INGREDIENTS,
+      products: db.products || INITIAL_PRODUCTS,
+      users: db.users || DEFAULT_ADMIN_USERS,
       pixConfig: db.pixConfig || INITIAL_PIX_CONFIG,
       lastUpdated: db.lastUpdated,
+      stockUpdatedAt: db.stockUpdatedAt || 0,
     };
   },
 };
