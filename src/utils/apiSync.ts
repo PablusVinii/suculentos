@@ -176,21 +176,48 @@ class ServerSyncManager {
         : [];
 
       const state = useStore.getState();
+      const localOrders = state.orders || [];
+      const deletedOrderIds = new Set(state.deletedOrderIds || []);
 
-      if (serverOrders.length > 0 || Array.isArray(rawServerOrders)) {
+      // 1. Filtra pedidos do servidor removendo os que foram excluídos pelo usuário
+      const validServerOrders = serverOrders.filter((so) => !deletedOrderIds.has(so.id));
+
+      // 2. Identifica pedidos que existem no cliente local mas o servidor ainda não tem (ex: novo deploy na Vercel / restart da lambda)
+      const missingOnServer = localOrders.filter(
+        (lo) => !validServerOrders.some((so) => so.id === lo.id) && !deletedOrderIds.has(lo.id)
+      );
+
+      // 3. Re-envia automaticamente os pedidos locais para o servidor recuperar o banco de dados
+      if (missingOnServer.length > 0) {
+        missingOnServer.forEach((mo) => {
+          fetch('/api/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(mo),
+          }).catch(() => {});
+        });
+      }
+
+      // 4. Lista consolidada: pedidos válidos do servidor + pedidos locais preservados
+      const combinedOrders = [
+        ...validServerOrders,
+        ...missingOnServer,
+      ];
+
+      if (combinedOrders.length > 0 || Array.isArray(rawServerOrders)) {
         if (!this.initialized) {
           // Primeira carga: registra os IDs conhecidos
-          serverOrders.forEach((o) => {
+          combinedOrders.forEach((o) => {
             this.knownOrderIds.add(o.id);
             this.lastOrderStatusMap.set(o.id, o.status);
           });
           this.initialized = true;
 
-          // Fonte da verdade: a lista oficial de pedidos do servidor
-          useStore.setState({ orders: serverOrders });
+          // Atualiza estado Zustand garantindo preservação de pedidos locais
+          useStore.setState({ orders: combinedOrders });
         } else {
           // Checa se há novos pedidos feitos por clientes em outros dispositivos
-          const newOrdersFromOtherDevices = serverOrders.filter(
+          const newOrdersFromOtherDevices = validServerOrders.filter(
             (so) => !this.knownOrderIds.has(so.id)
           );
 
@@ -212,7 +239,7 @@ class ServerSyncManager {
 
           // Checa se algum pedido deste cliente teve seu status alterado pela cozinha
           const myCodes = state.myOrderCodes;
-          serverOrders.forEach((so) => {
+          validServerOrders.forEach((so) => {
             const lastStatus = this.lastOrderStatusMap.get(so.id);
             const isMyOrder =
               myCodes.includes(so.trackingCode) ||
@@ -235,9 +262,9 @@ class ServerSyncManager {
             }
           });
 
-          // Atualiza o estado Zustand com os pedidos sincronizados do servidor
-          this.knownOrderIds = new Set(serverOrders.map((o) => o.id));
-          useStore.setState({ orders: serverOrders });
+          // Atualiza o estado Zustand com os pedidos consolidados
+          this.knownOrderIds = new Set(combinedOrders.map((o) => o.id));
+          useStore.setState({ orders: combinedOrders });
         }
       }
 

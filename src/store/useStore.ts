@@ -112,6 +112,10 @@ interface StoreState {
 
   // --- Pedidos (Kanban) ---
   orders: Order[];
+  deletedOrderIds: string[];
+  importOrdersFromBackup: (importedOrders: Order[]) => void;
+
+  // --- Ações de Navegação e UI ---
 
   // --- Ações de Navegação e UI ---
   setClientActiveTab: (tab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos') => void;
@@ -418,6 +422,7 @@ export const useStore = create<StoreState>()(
 
       myOrderCodes: [],
       storeSchedule: INITIAL_STORE_SCHEDULE,
+      deletedOrderIds: [],
 
       pastelSizes: INITIAL_PASTEL_SIZES,
       ingredients: ALL_INITIAL_INGREDIENTS,
@@ -1043,7 +1048,14 @@ export const useStore = create<StoreState>()(
             c !== cleanId.replace('PED-', '')
         );
 
-        set({ orders: updated, myOrderCodes: updatedMyCodes });
+        const currentDeleted = get().deletedOrderIds || [];
+        const updatedDeleted = currentDeleted.includes(cleanId) ? currentDeleted : [...currentDeleted, cleanId];
+
+        set({
+          orders: updated,
+          myOrderCodes: updatedMyCodes,
+          deletedOrderIds: updatedDeleted,
+        });
 
         // 1. Sincroniza via BroadcastChannel local
         syncManager.broadcast({
@@ -1065,6 +1077,32 @@ export const useStore = create<StoreState>()(
         } catch (_) {}
 
         get().showToast('🗑️ Pedido excluído permanentemente.');
+      },
+
+      importOrdersFromBackup: (importedOrders) => {
+        if (!Array.isArray(importedOrders) || importedOrders.length === 0) {
+          get().showToast('⚠️ Nenhum pedido válido encontrado no arquivo.');
+          return;
+        }
+
+        const { orders, deletedOrderIds } = get();
+        const existingIds = new Set(orders.map((o) => o.id));
+        const newOrdersToAdd: Order[] = [];
+
+        importedOrders.forEach((io) => {
+          if (io && io.id && !existingIds.has(io.id)) {
+            newOrdersToAdd.push(io);
+            apiPostOrder(io);
+          }
+        });
+
+        const updated = [...newOrdersToAdd, ...orders];
+        const cleanedDeleted = (deletedOrderIds || []).filter(
+          (id) => !importedOrders.some((io) => io && io.id === id)
+        );
+
+        set({ orders: updated, deletedOrderIds: cleanedDeleted });
+        get().showToast(`✅ ${newOrdersToAdd.length} pedidos restaurados com sucesso!`);
       },
 
       addMyOrderCode: (code) => {
@@ -1102,6 +1140,7 @@ export const useStore = create<StoreState>()(
         cart: state.cart,
         orders: state.orders,
         myOrderCodes: state.myOrderCodes,
+        deletedOrderIds: state.deletedOrderIds,
         storeSchedule: state.storeSchedule,
         ingredients: state.ingredients,
         products: state.products,

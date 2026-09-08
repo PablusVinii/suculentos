@@ -23,6 +23,8 @@ import {
   Trash2,
   RefreshCw,
   Sparkles,
+  Download,
+  Upload,
 } from 'lucide-react';
 
 const STATUS_CONFIG: Record<
@@ -74,7 +76,9 @@ const ORDER_TYPE_LABELS: Record<OrderType, { label: string; emoji: string }> = {
 };
 
 export const OrderHistoryAuditory: React.FC = () => {
-  const { orders, updateOrderStatus, deleteOrder } = useStore();
+  const { orders, updateOrderStatus, deleteOrder, importOrdersFromBackup, showToast } = useStore();
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Estados de Filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -248,6 +252,56 @@ export const OrderHistoryAuditory: React.FC = () => {
     }
   };
 
+  const handleExportBackup = () => {
+    try {
+      const dataStr = JSON.stringify({
+        exportedAt: new Date().toISOString(),
+        totalOrders: orders.length,
+        orders,
+      }, null, 2);
+
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dateStr = new Date().toISOString().split('T')[0];
+      link.href = url;
+      link.download = `backup_pedidos_suculentos_${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast('📥 Backup dos pedidos baixado com sucesso!');
+    } catch (err) {
+      showToast('❌ Falha ao exportar backup dos pedidos.');
+    }
+  };
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const content = evt.target?.result as string;
+        const parsed = JSON.parse(content);
+        const importedOrders = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.orders) ? parsed.orders : null);
+
+        if (Array.isArray(importedOrders)) {
+          importOrdersFromBackup(importedOrders);
+        } else {
+          showToast('❌ Arquivo de backup inválido.');
+        }
+      } catch (_) {
+        showToast('❌ Erro ao ler arquivo de backup.');
+      }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in space-y-8">
       {/* Top Header com Título e Ação de Impressão */}
@@ -271,7 +325,36 @@ export const OrderHistoryAuditory: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Input oculto para upload de backup */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportFileChange}
+            className="hidden"
+          />
+
+          <button
+            type="button"
+            onClick={handleExportBackup}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition-all shadow-xs"
+            title="Baixar arquivo de segurança JSON com todos os pedidos"
+          >
+            <Download className="w-3.5 h-3.5 text-amber-700" />
+            <span>Baixar Backup (JSON)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-xs font-bold transition-all"
+            title="Importar pedidos de um arquivo JSON anterior"
+          >
+            <Upload className="w-3.5 h-3.5 text-stone-600" />
+            <span>Restaurar Backup</span>
+          </button>
+
           <button
             onClick={handlePrintAuditReport}
             className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-stone-900 hover:bg-stone-800 text-white font-extrabold text-xs sm:text-sm shadow-md transition-all active:scale-95 cursor-pointer"
