@@ -115,17 +115,37 @@ export const AdminDashboard: React.FC = () => {
                 👨‍🍳
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-xl font-black tracking-tight font-display text-amber-400">
                     Suculentos Admin
                   </h1>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Nuvem em Tempo Real
+                    Nuvem Live
                   </span>
+
+                  {/* Atalho de Status da Loja Aberta/Fechada no Header */}
+                  <button
+                    id="admin-header-status-badge"
+                    onClick={() => setAdminActiveTab('schedule')}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black border transition-transform hover:scale-105 cursor-pointer ${
+                      storeStatus.isOpen
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                    }`}
+                    title="Clique para gerenciar os horários e status da loja"
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        storeStatus.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                      }`}
+                    ></span>
+                    <span>{storeStatus.isOpen ? 'Loja Aberta (Online)' : 'Loja Fechada (Offline)'}</span>
+                    <Clock className="w-3 h-3 ml-0.5 opacity-70" />
+                  </button>
                 </div>
                 <p className="text-xs text-stone-400">
-                  {adminUser?.name || 'Gerência / Cozinha'} • Sincronização Multi-Aparelhos Ativa
+                  {adminUser?.name || 'Gerência / Cozinha'} • {storeStatus.subText}
                 </p>
               </div>
             </div>
@@ -209,6 +229,32 @@ export const AdminDashboard: React.FC = () => {
                   {activeOrdersCount}
                 </span>
               )}
+            </button>
+
+            <button
+              id="admin-tab-schedule"
+              onClick={() => setAdminActiveTab('schedule')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                adminActiveTab === 'schedule'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                  : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Horários & Status</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  storeStatus.isOpen
+                    ? adminActiveTab === 'schedule'
+                      ? 'bg-white text-emerald-800'
+                      : 'bg-emerald-500 text-white'
+                    : adminActiveTab === 'schedule'
+                    ? 'bg-white text-rose-800'
+                    : 'bg-rose-500 text-white'
+                }`}
+              >
+                {storeStatus.isOpen ? '🟢 Aberto' : '🔴 Fechado'}
+              </span>
             </button>
 
             <button
@@ -307,32 +353,6 @@ export const AdminDashboard: React.FC = () => {
                 ⚡ Live
               </span>
             </button>
-
-            <button
-              id="admin-tab-schedule"
-              onClick={() => setAdminActiveTab('schedule')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
-                adminActiveTab === 'schedule'
-                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
-                  : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>Horários & Status</span>
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                  storeStatus.isOpen
-                    ? adminActiveTab === 'schedule'
-                      ? 'bg-white text-emerald-800'
-                      : 'bg-emerald-500 text-white'
-                    : adminActiveTab === 'schedule'
-                    ? 'bg-white text-rose-800'
-                    : 'bg-rose-500 text-white'
-                }`}
-              >
-                {storeStatus.isOpen ? '🟢 Aberto' : '🔴 Fechado'}
-              </span>
-            </button>
           </div>
         </div>
       </div>
@@ -340,12 +360,12 @@ export const AdminDashboard: React.FC = () => {
       {/* Conteúdo da Aba Ativa */}
       <main className="flex-1 pb-16">
         {adminActiveTab === 'kanban' && <KitchenKanban />}
+        {adminActiveTab === 'schedule' && <ScheduleManager />}
         {adminActiveTab === 'history' && <OrderHistoryAuditory />}
         {adminActiveTab === 'stock' && <StockManager />}
         {adminActiveTab === 'stats' && <SalesStats />}
         {adminActiveTab === 'users' && <UserManager />}
         {adminActiveTab === 'pix' && <PixConfigManager />}
-        {adminActiveTab === 'schedule' && <ScheduleManager />}
       </main>
 
       {/* Popup de Alerta de Novo Pedido em Tempo Real */}
