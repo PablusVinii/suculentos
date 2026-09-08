@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { Header } from '@/components/common/Header';
-import { CategoryTabs } from '@/components/client/CategoryTabs';
 import { PastelBuilder } from '@/components/client/PastelBuilder';
 import { QuickProductList } from '@/components/client/QuickProductList';
 import { MyOrdersTab } from '@/components/client/MyOrdersTab';
@@ -125,9 +124,6 @@ export default function HomePage() {
 
       {/* Conteúdo Principal do Cliente */}
       <main className="flex-1 pb-24 md:pb-12">
-        {/* Navegação por Categorias */}
-        <CategoryTabs />
-
         {/* Telas do Cliente */}
         {clientActiveTab === 'pastel' && <PastelBuilder />}
         {clientActiveTab === 'salgados' && <QuickProductList category="salgado" />}

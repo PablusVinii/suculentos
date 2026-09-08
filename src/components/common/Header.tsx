@@ -22,17 +22,18 @@ export const Header: React.FC = () => {
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-amber-100 shadow-xs transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Lado Esquerdo: Botão Menu Lateral + Logo & Identidade Visual */}
-          <div className="flex items-center gap-3">
-            {/* Botão de Menu Lateral Expansível */}
+          {/* Lado Esquerdo: Botão Menu Sanduíche + Logo & Identidade Visual */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Botão de Menu Sanduíche */}
             <button
               id="header-open-side-menu-button"
               onClick={() => setIsSideMenuOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-950 border border-amber-500/30 text-xs sm:text-sm font-extrabold transition-all hover:scale-102 cursor-pointer shadow-xs active:scale-95"
-              title="Abrir Menu Lateral de Opções e Cardápio"
+              className="flex items-center justify-center p-2.5 sm:px-3 sm:py-2.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-950 border border-amber-500/30 text-xs sm:text-sm font-extrabold transition-all hover:scale-105 cursor-pointer shadow-xs active:scale-95 gap-2"
+              title="Abrir Cardápio"
+              aria-label="Abrir Cardápio"
             >
               <Menu className="w-5 h-5 text-amber-600" />
-              <span className="hidden sm:inline font-display">Menu & Categorias</span>
+              <span className="hidden sm:inline font-display font-black text-amber-900">Cardápio</span>
             </button>
 
             {/* Logo */}
