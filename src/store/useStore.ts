@@ -64,7 +64,7 @@ interface StoreState {
 
   // --- Vista / Navegação ---
   clientActiveTab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos';
-  adminActiveTab: 'kanban' | 'stock' | 'stats' | 'users' | 'pix';
+  adminActiveTab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix';
   isSideMenuOpen: boolean;
   isCartOpen: boolean;
   isCheckoutOpen: boolean;
@@ -107,7 +107,6 @@ interface StoreState {
   // --- Ações de Navegação e UI ---
   setClientActiveTab: (tab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos') => void;
   setAdminActiveTab: (tab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix') => void;
-  adminActiveTab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix';
   setIsSideMenuOpen: (open: boolean) => void;
   toggleSideMenu: () => void;
   setIsCartOpen: (open: boolean) => void;

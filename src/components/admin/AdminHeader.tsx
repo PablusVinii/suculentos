@@ -4,6 +4,7 @@ import React from 'react';
 import { useStore } from '@/store/useStore';
 import {
   Kanban,
+  History,
   SlidersHorizontal,
   BarChart3,
   ChefHat,
@@ -92,6 +93,18 @@ export const AdminHeader: React.FC = () => {
                   {totalUnavailable} pausados
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => setAdminActiveTab('history')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                adminActiveTab === 'history'
+                  ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-500/20'
+                  : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              <span>Histórico & Auditoria</span>
             </button>
 
             <button
