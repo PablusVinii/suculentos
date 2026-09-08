@@ -74,7 +74,7 @@ const ORDER_TYPE_LABELS: Record<OrderType, { label: string; emoji: string }> = {
 };
 
 export const OrderHistoryAuditory: React.FC = () => {
-  const { orders, updateOrderStatus } = useStore();
+  const { orders, updateOrderStatus, deleteOrder } = useStore();
 
   // Estados de Filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -791,6 +791,7 @@ export const OrderHistoryAuditory: React.FC = () => {
       <DeleteOrderConfirmModal
         order={orderToDelete}
         onClose={() => setOrderToDelete(null)}
+        onConfirm={deleteOrder}
       />
     </div>
   );
