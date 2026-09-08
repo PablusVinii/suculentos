@@ -11,10 +11,12 @@ import { CartDrawer } from '@/components/client/CartDrawer';
 import { CheckoutModal } from '@/components/client/CheckoutModal';
 import { OrderSuccessModal } from '@/components/client/OrderSuccessModal';
 import { ClientStatusAlertModal } from '@/components/client/ClientStatusAlertModal';
+import { StoreHoursModal } from '@/components/common/StoreHoursModal';
 import { formatCurrency } from '@/utils/format';
+import { getStoreOpenStatus } from '@/utils/schedule';
 import { syncManager } from '@/utils/sync';
 import { serverSync } from '@/utils/apiSync';
-import { ArrowRight, Heart, CheckCircle2, Lock } from 'lucide-react';
+import { ArrowRight, Heart, CheckCircle2, Lock, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -26,12 +28,17 @@ export default function HomePage() {
     getCartItemsCount,
     toastMessage,
     clearToast,
+    storeSchedule,
   } = useStore();
 
   const [mounted, setMounted] = useState(false);
+  const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+
+    const handleOpenModal = () => setIsHoursModalOpen(true);
+    window.addEventListener('open-store-hours-modal', handleOpenModal);
 
     // Inicia sincronização na nuvem a cada 3 segundos
     serverSync.startPolling(3000);
@@ -74,12 +81,15 @@ export default function HomePage() {
         });
       } else if (msg.type === 'PIX_UPDATE') {
         useStore.setState({ pixConfig: msg.pixConfig });
+      } else if (msg.type === 'SCHEDULE_UPDATE') {
+        useStore.setState({ storeSchedule: msg.storeSchedule });
       } else if (msg.type === 'USERS_UPDATE') {
         useStore.setState({ adminUsers: msg.users });
       }
     });
 
     return () => {
+      window.removeEventListener('open-store-hours-modal', handleOpenModal);
       serverSync.stopPolling();
       unsubscribe();
     };
@@ -102,11 +112,39 @@ export default function HomePage() {
 
   const totalItems = getCartItemsCount();
   const totalAmount = getCartTotal();
+  const storeStatus = getStoreOpenStatus(storeSchedule);
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50 text-stone-900">
       {/* Header Focado no Cliente */}
       <Header />
+
+      {/* Banner Informativo quando Fechado / Offline */}
+      {!storeStatus.isOpen && (
+        <div className="bg-gradient-to-r from-rose-900 via-rose-950 to-stone-900 text-white px-4 py-3 border-b border-rose-800/80 shadow-inner">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5 text-center sm:text-left">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span>
+              <div>
+                <span className="font-black text-rose-300 mr-1.5">
+                  🔴 No momento estamos fechados:
+                </span>
+                <span className="text-stone-200">
+                  {storeStatus.subText}. Você pode explorar o cardápio e preparar seus pastéis normalmente!
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsHoursModalOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all shrink-0 border border-white/20 flex items-center gap-1.5 active:scale-95"
+            >
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              <span>Ver Horários da Semana</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Toast Flutuante de Feedback */}
       {toastMessage && (
@@ -159,6 +197,10 @@ export default function HomePage() {
       <CheckoutModal />
       <OrderSuccessModal />
       <ClientStatusAlertModal />
+      <StoreHoursModal
+        isOpen={isHoursModalOpen}
+        onClose={() => setIsHoursModalOpen(false)}
+      />
 
       {/* Rodapé do Cliente com link discreto para a Área da Cozinha */}
       <footer className="bg-stone-900 text-stone-400 py-8 border-t border-stone-800 text-xs">
@@ -192,3 +234,4 @@ export default function HomePage() {
     </div>
   );
 }
+

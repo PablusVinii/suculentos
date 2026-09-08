@@ -1,8 +1,7 @@
-'use client';
-
 import React from 'react';
 import { useStore } from '@/store/useStore';
 import { formatCurrency } from '@/utils/format';
+import { getStoreOpenStatus } from '@/utils/schedule';
 import {
   X,
   ShoppingBag,
@@ -11,6 +10,8 @@ import {
   Minus,
   ArrowRight,
   PlusCircle,
+  Clock,
+  AlertCircle,
 } from 'lucide-react';
 
 export const CartDrawer: React.FC = () => {
@@ -25,14 +26,25 @@ export const CartDrawer: React.FC = () => {
     getCartItemsCount,
     setIsCheckoutOpen,
     setClientActiveTab,
+    storeSchedule,
+    showToast,
   } = useStore();
 
   if (!isCartOpen) return null;
 
   const totalAmount = getCartTotal();
   const totalCount = getCartItemsCount();
+  const storeStatus = getStoreOpenStatus(storeSchedule);
+  const isStoreClosed = !storeStatus.isOpen && storeSchedule.autoRejectOrdersWhenClosed;
 
   const handleProceedToCheckout = () => {
+    if (isStoreClosed) {
+      showToast('⚠️ A pastelaria está fechada no momento. Confira os horários de atendimento!');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('open-store-hours-modal'));
+      }
+      return;
+    }
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
@@ -254,6 +266,19 @@ export const CartDrawer: React.FC = () => {
           {/* Footer com Totais e Checkout */}
           {cart.length > 0 && (
             <div className="p-5 border-t border-stone-200 bg-stone-50 space-y-4">
+              {/* Aviso quando fechado */}
+              {isStoreClosed && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-black text-rose-800">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>Loja Fechada no Momento</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    {storeStatus.subText}. O envio de pedidos será reaberto assim que a loja estiver online!
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-1.5 text-xs text-stone-600">
                 <div className="flex justify-between font-medium">
                   <span>Subtotal ({totalCount} itens):</span>
@@ -274,10 +299,23 @@ export const CartDrawer: React.FC = () => {
               <button
                 id="cart-checkout-button"
                 onClick={handleProceedToCheckout}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white font-black text-base rounded-2xl shadow-lg shadow-orange-500/25 transition-all transform active:scale-98"
+                className={`w-full flex items-center justify-center gap-2 py-4 font-black text-base rounded-2xl shadow-lg transition-all transform active:scale-98 ${
+                  isStoreClosed
+                    ? 'bg-stone-300 text-stone-600 hover:bg-stone-400 cursor-pointer shadow-stone-300/20'
+                    : 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-600 text-white shadow-orange-500/25'
+                }`}
               >
-                <span>Finalizar Pedido</span>
-                <ArrowRight className="w-5 h-5" />
+                {isStoreClosed ? (
+                  <>
+                    <Clock className="w-5 h-5 text-stone-600" />
+                    <span>Loja Fechada ({storeStatus.nextOpenText || 'Ver Horários'})</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Finalizar Pedido</span>
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -286,3 +324,4 @@ export const CartDrawer: React.FC = () => {
     </div>
   );
 };
+

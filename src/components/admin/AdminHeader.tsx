@@ -104,7 +104,7 @@ export const AdminHeader: React.FC = () => {
               }`}
             >
               <History className="w-4 h-4" />
-              <span>Histórico & Auditoria</span>
+              <span>Histórico</span>
             </button>
 
             <button
@@ -116,7 +116,18 @@ export const AdminHeader: React.FC = () => {
               }`}
             >
               <BarChart3 className="w-4 h-4" />
-              <span>Vendas do Dia</span>
+              <span>Vendas</span>
+            </button>
+
+            <button
+              onClick={() => setAdminActiveTab('schedule')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                adminActiveTab === 'schedule'
+                  ? 'bg-amber-500 text-stone-950 shadow-md shadow-amber-500/20'
+                  : 'bg-stone-800 text-stone-300 hover:bg-stone-700'
+              }`}
+            >
+              <span>Horários</span>
             </button>
           </div>
         </div>

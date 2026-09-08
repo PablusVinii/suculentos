@@ -8,10 +8,12 @@ import { StockManager } from './StockManager';
 import { SalesStats } from './SalesStats';
 import { UserManager } from './UserManager';
 import { PixConfigManager } from './PixConfigManager';
+import { ScheduleManager } from './ScheduleManager';
 import { NewOrderAlertModal } from './NewOrderAlertModal';
 import { ThermalReceiptModal } from './ThermalReceiptModal';
 import { syncManager } from '@/utils/sync';
 import { Order } from '@/types';
+import { getStoreOpenStatus } from '@/utils/schedule';
 import {
   ChefHat,
   Kanban,
@@ -20,6 +22,7 @@ import {
   BarChart3,
   Users,
   QrCode,
+  Clock,
   LogOut,
   ExternalLink,
   Volume2,
@@ -42,10 +45,12 @@ export const AdminDashboard: React.FC = () => {
     toggleSound,
     ingredients,
     products,
+    storeSchedule,
     setIncomingOrderAlert,
   } = useStore();
 
   const [selectedPrintOrder, setSelectedPrintOrder] = useState<Order | null>(null);
+  const storeStatus = getStoreOpenStatus(storeSchedule);
 
   // Escuta eventos em tempo real locais e sincroniza com a nuvem (Vercel / Multi-dispositivos)
   useEffect(() => {
@@ -302,6 +307,32 @@ export const AdminDashboard: React.FC = () => {
                 ⚡ Live
               </span>
             </button>
+
+            <button
+              id="admin-tab-schedule"
+              onClick={() => setAdminActiveTab('schedule')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold whitespace-nowrap transition-all cursor-pointer ${
+                adminActiveTab === 'schedule'
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/20 scale-[1.02]'
+                  : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border border-stone-200/80'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Horários & Status</span>
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  storeStatus.isOpen
+                    ? adminActiveTab === 'schedule'
+                      ? 'bg-white text-emerald-800'
+                      : 'bg-emerald-500 text-white'
+                    : adminActiveTab === 'schedule'
+                    ? 'bg-white text-rose-800'
+                    : 'bg-rose-500 text-white'
+                }`}
+              >
+                {storeStatus.isOpen ? '🟢 Aberto' : '🔴 Fechado'}
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -314,6 +345,7 @@ export const AdminDashboard: React.FC = () => {
         {adminActiveTab === 'stats' && <SalesStats />}
         {adminActiveTab === 'users' && <UserManager />}
         {adminActiveTab === 'pix' && <PixConfigManager />}
+        {adminActiveTab === 'schedule' && <ScheduleManager />}
       </main>
 
       {/* Popup de Alerta de Novo Pedido em Tempo Real */}

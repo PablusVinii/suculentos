@@ -8,6 +8,7 @@ import {
   OrderStatus,
   PixConfig,
   Product,
+  StoreScheduleConfig,
 } from '@/types';
 import {
   INITIAL_COMPLEMENTS,
@@ -16,6 +17,7 @@ import {
   INITIAL_PIX_CONFIG,
   INITIAL_PRODUCTS,
   INITIAL_SAUCES,
+  INITIAL_STORE_SCHEDULE,
 } from '@/data/mockData';
 
 const ALL_INITIAL_INGREDIENTS: Ingredient[] = [
@@ -58,6 +60,7 @@ interface ServerDatabase {
   products: Product[];
   users: AdminUser[];
   pixConfig: PixConfig;
+  storeSchedule?: StoreScheduleConfig;
   lastUpdated: string;
   stockUpdatedAt?: number;
 }
@@ -133,6 +136,7 @@ function getInitialDatabase(): ServerDatabase {
     products: INITIAL_PRODUCTS,
     users: DEFAULT_ADMIN_USERS,
     pixConfig: INITIAL_PIX_CONFIG,
+    storeSchedule: INITIAL_STORE_SCHEDULE,
     lastUpdated: new Date().toISOString(),
     stockUpdatedAt: 0,
   };
@@ -173,6 +177,9 @@ async function fetchCloudDatabase(): Promise<ServerDatabase | null> {
             parsed.orders = parsed.orders.filter((o: any) => !isTestOrder(o)).map(sanitizeOrder);
             if (!parsed.pixConfig) {
               parsed.pixConfig = INITIAL_PIX_CONFIG;
+            }
+            if (!parsed.storeSchedule) {
+              parsed.storeSchedule = INITIAL_STORE_SCHEDULE;
             }
             if (!Array.isArray(parsed.ingredients) || parsed.ingredients.length === 0) {
               parsed.ingredients = ALL_INITIAL_INGREDIENTS;
@@ -232,6 +239,9 @@ function parseAndValidateDb(raw: string): ServerDatabase | null {
           ? parsed.users
           : DEFAULT_ADMIN_USERS;
       const pixConfig = parsed.pixConfig || INITIAL_PIX_CONFIG;
+      const storeSchedule = parsed.storeSchedule && Array.isArray(parsed.storeSchedule.schedule)
+        ? parsed.storeSchedule
+        : INITIAL_STORE_SCHEDULE;
       const stockUpdatedAt = typeof parsed.stockUpdatedAt === 'number' ? parsed.stockUpdatedAt : 0;
 
       return {
@@ -240,6 +250,7 @@ function parseAndValidateDb(raw: string): ServerDatabase | null {
         products,
         users,
         pixConfig,
+        storeSchedule,
         lastUpdated: parsed.lastUpdated || new Date().toISOString(),
         stockUpdatedAt,
       };
@@ -298,6 +309,9 @@ async function loadDatabaseAsync(): Promise<ServerDatabase> {
     global.__suculentos_db.orders = (global.__suculentos_db.orders || []).filter((o) => !isTestOrder(o));
     if (!global.__suculentos_db.pixConfig) {
       global.__suculentos_db.pixConfig = INITIAL_PIX_CONFIG;
+    }
+    if (!global.__suculentos_db.storeSchedule) {
+      global.__suculentos_db.storeSchedule = INITIAL_STORE_SCHEDULE;
     }
     if (!global.__suculentos_db.ingredients) {
       global.__suculentos_db.ingredients = ALL_INITIAL_INGREDIENTS;
@@ -503,6 +517,29 @@ export const serverStorage = {
     return updated;
   },
 
+  // --- Horário de Funcionamento ---
+  async getStoreSchedule(): Promise<StoreScheduleConfig> {
+    const db = await loadDatabaseAsync();
+    return db.storeSchedule || INITIAL_STORE_SCHEDULE;
+  },
+
+  async updateStoreSchedule(storeSchedule: StoreScheduleConfig): Promise<StoreScheduleConfig> {
+    const db = await loadDatabaseAsync();
+    const updated: StoreScheduleConfig = {
+      ...storeSchedule,
+      updatedAt: new Date().toISOString(),
+    };
+    db.storeSchedule = updated;
+    saveDatabase(db);
+
+    broadcastRealtimeEvent({
+      type: 'SCHEDULE_UPDATE',
+      storeSchedule: updated,
+    });
+
+    return updated;
+  },
+
   // --- Sincronização Geral ---
   async getSyncData() {
     const db = await loadDatabaseAsync();
@@ -512,6 +549,7 @@ export const serverStorage = {
       products: db.products || INITIAL_PRODUCTS,
       users: db.users || DEFAULT_ADMIN_USERS,
       pixConfig: db.pixConfig || INITIAL_PIX_CONFIG,
+      storeSchedule: db.storeSchedule || INITIAL_STORE_SCHEDULE,
       lastUpdated: db.lastUpdated,
       stockUpdatedAt: db.stockUpdatedAt || 0,
     };

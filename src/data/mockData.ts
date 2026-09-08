@@ -1,4 +1,4 @@
-import { PastelSize, Ingredient, Product, Order, PixConfig } from '@/types';
+import { PastelSize, Ingredient, Product, Order, PixConfig, StoreScheduleConfig } from '@/types';
 
 export const INITIAL_PASTEL_SIZES: PastelSize[] = [
   {
@@ -198,4 +198,70 @@ export const INITIAL_PIX_CONFIG: PixConfig = {
   instructions: 'Chave oficial da pastelaria. O comprovante pode ser apresentado no momento da entrega ou no balcão.',
   updatedAt: new Date().toISOString(),
 };
+
+export const INITIAL_STORE_SCHEDULE: StoreScheduleConfig = {
+  mode: 'auto',
+  closedMessage: 'No momento estamos fechados. Confira nossos horários de funcionamento e prepare seu pedido para quando abrirmos!',
+  autoRejectOrdersWhenClosed: true,
+  updatedAt: new Date().toISOString(),
+  schedule: [
+    {
+      dayOfWeek: 0,
+      dayName: 'Domingo',
+      shortName: 'Dom',
+      isOpen: true,
+      openTime: '18:00',
+      closeTime: '23:30',
+    },
+    {
+      dayOfWeek: 1,
+      dayName: 'Segunda-feira',
+      shortName: 'Seg',
+      isOpen: false,
+      openTime: '18:00',
+      closeTime: '23:30',
+    },
+    {
+      dayOfWeek: 2,
+      dayName: 'Terça-feira',
+      shortName: 'Ter',
+      isOpen: true,
+      openTime: '18:00',
+      closeTime: '23:30',
+    },
+    {
+      dayOfWeek: 3,
+      dayName: 'Quarta-feira',
+      shortName: 'Qua',
+      isOpen: true,
+      openTime: '18:00',
+      closeTime: '23:30',
+    },
+    {
+      dayOfWeek: 4,
+      dayName: 'Quinta-feira',
+      shortName: 'Qui',
+      isOpen: true,
+      openTime: '18:00',
+      closeTime: '23:30',
+    },
+    {
+      dayOfWeek: 5,
+      dayName: 'Sexta-feira',
+      shortName: 'Sex',
+      isOpen: true,
+      openTime: '18:00',
+      closeTime: '23:59',
+    },
+    {
+      dayOfWeek: 6,
+      dayName: 'Sábado',
+      shortName: 'Sáb',
+      isOpen: true,
+      openTime: '18:00',
+      closeTime: '23:59',
+    },
+  ],
+};
+
 

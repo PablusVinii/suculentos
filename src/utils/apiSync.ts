@@ -116,6 +116,10 @@ class ServerSyncManager {
             useStore.setState({
               pixConfig: msg.pixConfig,
             });
+          } else if (msg.type === 'SCHEDULE_UPDATE' && msg.storeSchedule) {
+            useStore.setState({
+              storeSchedule: msg.storeSchedule,
+            });
           }
         } catch (_) {}
       };
@@ -315,6 +319,20 @@ class ServerSyncManager {
 
         if (isPixChanged) {
           useStore.setState({ pixConfig: data.pixConfig });
+        }
+      }
+
+      if (data.storeSchedule && Array.isArray(data.storeSchedule.schedule)) {
+        const currentSchedule = state.storeSchedule;
+        const isScheduleChanged =
+          !currentSchedule ||
+          currentSchedule.mode !== data.storeSchedule.mode ||
+          currentSchedule.closedMessage !== data.storeSchedule.closedMessage ||
+          (data.storeSchedule.updatedAt && data.storeSchedule.updatedAt !== currentSchedule.updatedAt) ||
+          JSON.stringify(currentSchedule.schedule) !== JSON.stringify(data.storeSchedule.schedule);
+
+        if (isScheduleChanged) {
+          useStore.setState({ storeSchedule: data.storeSchedule });
         }
       }
     } catch (err) {

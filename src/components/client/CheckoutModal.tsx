@@ -5,6 +5,7 @@ import { useStore } from '@/store/useStore';
 import { PaymentMethod, OrderType, DeliveryDetails } from '@/types';
 import { formatCurrency } from '@/utils/format';
 import { playSuccessChime } from '@/utils/audio';
+import { getStoreOpenStatus } from '@/utils/schedule';
 import {
   X,
   CreditCard,
@@ -25,6 +26,7 @@ import {
   Info,
   ShieldCheck,
   BellRing,
+  Clock,
 } from 'lucide-react';
 
 export const CheckoutModal: React.FC = () => {
@@ -34,6 +36,8 @@ export const CheckoutModal: React.FC = () => {
     getCartTotal,
     createOrder,
     pixConfig,
+    storeSchedule,
+    showToast,
   } = useStore();
 
   const [customerName, setCustomerName] = useState('');
@@ -59,6 +63,9 @@ export const CheckoutModal: React.FC = () => {
   if (!isCheckoutOpen) return null;
 
   const totalAmount = getCartTotal();
+  const storeStatus = getStoreOpenStatus(storeSchedule);
+  const isStoreClosed = !storeStatus.isOpen && storeSchedule.autoRejectOrdersWhenClosed;
+
   const changeForNumber = parseFloat(changeFor.replace(',', '.')) || 0;
   const calculatedChange = changeForNumber > totalAmount ? changeForNumber - totalAmount : 0;
   const isChangeInsufficient =
@@ -73,6 +80,11 @@ export const CheckoutModal: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isStoreClosed) {
+      showToast('⚠️ A pastelaria está fechada no momento. Não é possível enviar pedidos fora do horário.');
+      return;
+    }
 
     if (!customerName.trim()) {
       setNameError(true);
@@ -542,6 +554,15 @@ export const CheckoutModal: React.FC = () => {
 
           {/* Resumo de Preço e Envio */}
           <div className="pt-3 border-t border-stone-200 space-y-3">
+            {isStoreClosed && (
+              <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>
+                  <strong>Loja Offline:</strong> {storeStatus.subText}
+                </span>
+              </div>
+            )}
+
             <div className="flex justify-between items-center text-stone-900">
               <span className="text-sm font-bold">Total a pagar:</span>
               <span className="text-2xl font-black text-amber-600 font-display">
@@ -552,9 +573,21 @@ export const CheckoutModal: React.FC = () => {
             <button
               type="submit"
               id="confirm-order-button"
-              className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-base rounded-2xl shadow-lg shadow-emerald-600/25 transition-all transform active:scale-98"
+              disabled={isStoreClosed}
+              className={`w-full flex items-center justify-center gap-2 py-4 font-black text-base rounded-2xl shadow-lg transition-all transform active:scale-98 ${
+                isStoreClosed
+                  ? 'bg-stone-300 text-stone-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-emerald-600/25 cursor-pointer'
+              }`}
             >
-              <span>Confirmar e Enviar Pedido 🚀</span>
+              {isStoreClosed ? (
+                <>
+                  <Clock className="w-5 h-5 text-stone-600" />
+                  <span>Loja Fechada no Momento</span>
+                </>
+              ) : (
+                <span>Confirmar e Enviar Pedido 🚀</span>
+              )}
             </button>
           </div>
         </form>

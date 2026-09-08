@@ -3,6 +3,7 @@
 import React from 'react';
 import { useStore } from '@/store/useStore';
 import { formatCurrency } from '@/utils/format';
+import { getStoreOpenStatus } from '@/utils/schedule';
 import {
   X,
   Sparkles,
@@ -34,6 +35,7 @@ export const ClientSidebarDrawer: React.FC = () => {
     myOrderCodes,
     products,
     pixConfig,
+    storeSchedule,
     showToast,
   } = useStore();
 
@@ -43,6 +45,7 @@ export const ClientSidebarDrawer: React.FC = () => {
 
   const totalItems = getCartItemsCount();
   const totalAmount = getCartTotal();
+  const storeStatus = getStoreOpenStatus(storeSchedule);
 
   const salgadosCount = products.filter((p) => p.category === 'salgado' && p.available).length;
   const bebidasCount = products.filter((p) => p.category === 'bebida' && p.available).length;
@@ -131,8 +134,12 @@ export const ClientSidebarDrawer: React.FC = () => {
                 </h2>
               </div>
               <p className="text-[11px] text-stone-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Fritando na hora • Aberto</span>
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    storeStatus.isOpen ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                  }`}
+                ></span>
+                <span>{storeStatus.isOpen ? 'Fritando na hora • Aberto' : 'Fechado no momento'}</span>
               </p>
             </div>
           </div>
@@ -266,10 +273,19 @@ export const ClientSidebarDrawer: React.FC = () => {
 
         {/* Rodapé do Menu Lateral */}
         <div className="p-4 bg-stone-100/90 border-t border-stone-200 text-stone-500 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-[11px]">
-            <Clock className="w-3.5 h-3.5 text-stone-400" />
-            <span>Entrega & Balcão</span>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsSideMenuOpen(false);
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('open-store-hours-modal'));
+              }
+            }}
+            className="flex items-center gap-1.5 text-[11px] font-bold text-amber-900 hover:text-amber-700 bg-amber-100/70 hover:bg-amber-100 px-2.5 py-1.5 rounded-xl transition-all"
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
+            <span>Ver Horários da Semana</span>
+          </button>
 
           <Link
             href="/admin"

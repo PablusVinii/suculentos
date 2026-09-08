@@ -109,3 +109,33 @@ export interface PixConfig {
   instructions?: string;
   updatedAt?: string;
 }
+
+export type StoreScheduleMode = 'auto' | 'always_open' | 'always_closed';
+
+export interface DaySchedule {
+  dayOfWeek: number; // 0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado
+  dayName: string; // Ex: 'Segunda-feira'
+  shortName: string; // Ex: 'Seg'
+  isOpen: boolean; // Se a loja abre neste dia da semana
+  openTime: string; // Ex: '18:00' (formato HH:MM)
+  closeTime: string; // Ex: '23:30' ou '01:00' (formato HH:MM)
+}
+
+export interface StoreScheduleConfig {
+  mode: StoreScheduleMode;
+  schedule: DaySchedule[];
+  closedMessage: string;
+  autoRejectOrdersWhenClosed: boolean;
+  updatedAt?: string;
+}
+
+export interface StoreStatusResult {
+  isOpen: boolean;
+  statusText: string;
+  subText: string;
+  badgeColor: string;
+  nextOpenText?: string;
+  isOverride: boolean;
+  mode: StoreScheduleMode;
+}
+

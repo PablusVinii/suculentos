@@ -9,6 +9,8 @@ import {
   PastelSize,
   PixConfig,
   Product,
+  StoreScheduleConfig,
+  StoreScheduleMode,
 } from '@/types';
 import {
   INITIAL_COMPLEMENTS,
@@ -18,6 +20,7 @@ import {
   INITIAL_PIX_CONFIG,
   INITIAL_PRODUCTS,
   INITIAL_SAUCES,
+  INITIAL_STORE_SCHEDULE,
 } from '@/data/mockData';
 import { playNewOrderChime } from '@/utils/audio';
 import { syncManager } from '@/utils/sync';
@@ -64,7 +67,7 @@ interface StoreState {
 
   // --- Vista / Navegação ---
   clientActiveTab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos';
-  adminActiveTab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix';
+  adminActiveTab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix' | 'schedule';
   isSideMenuOpen: boolean;
   isCartOpen: boolean;
   isCheckoutOpen: boolean;
@@ -77,6 +80,12 @@ interface StoreState {
 
   // --- Códigos dos meus pedidos (Privacidade do Cliente) ---
   myOrderCodes: string[];
+
+  // --- Horário de Funcionamento & Status da Loja ---
+  storeSchedule: StoreScheduleConfig;
+  updateStoreSchedule: (config: StoreScheduleConfig) => void;
+  setStoreScheduleMode: (mode: StoreScheduleMode) => void;
+  resetStoreScheduleToDefault: () => void;
 
   // --- Catálogo e Estoque ---
   pastelSizes: PastelSize[];
@@ -106,7 +115,7 @@ interface StoreState {
 
   // --- Ações de Navegação e UI ---
   setClientActiveTab: (tab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos') => void;
-  setAdminActiveTab: (tab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix') => void;
+  setAdminActiveTab: (tab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix' | 'schedule') => void;
   setIsSideMenuOpen: (open: boolean) => void;
   toggleSideMenu: () => void;
   setIsCartOpen: (open: boolean) => void;
@@ -270,6 +279,21 @@ function apiPutPix(pixConfig: PixConfig) {
   }
 }
 
+function apiPutSchedule(storeSchedule: StoreScheduleConfig) {
+  if (typeof window !== 'undefined') {
+    fetch('/api/schedule', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ storeSchedule }),
+    }).catch((e) => console.warn('Failed to sync schedule to server:', e));
+
+    emitCloudRealtime({
+      type: 'SCHEDULE_UPDATE',
+      storeSchedule,
+    });
+  }
+}
+
 export const useStore = create<StoreState>()(
   persist(
     (set, get) => ({
@@ -393,6 +417,7 @@ export const useStore = create<StoreState>()(
       toastMessage: null,
 
       myOrderCodes: [],
+      storeSchedule: INITIAL_STORE_SCHEDULE,
 
       pastelSizes: INITIAL_PASTEL_SIZES,
       ingredients: ALL_INITIAL_INGREDIENTS,
@@ -834,6 +859,67 @@ export const useStore = create<StoreState>()(
         get().showToast('🔄 Configuração PIX restaurada para os padrões.');
       },
 
+      // --- Horário de Funcionamento & Status da Loja ---
+      updateStoreSchedule: (config) => {
+        const updated: StoreScheduleConfig = {
+          ...config,
+          schedule: config.schedule.map((s) => ({
+            ...s,
+            openTime: s.openTime.trim(),
+            closeTime: s.closeTime.trim(),
+          })),
+          closedMessage: config.closedMessage?.trim() || INITIAL_STORE_SCHEDULE.closedMessage,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({ storeSchedule: updated });
+
+        syncManager.broadcast({
+          type: 'SCHEDULE_UPDATE',
+          storeSchedule: updated,
+        });
+
+        apiPutSchedule(updated);
+        get().showToast('⏰ Horário de funcionamento salvo e sincronizado!');
+      },
+
+      setStoreScheduleMode: (mode) => {
+        const { storeSchedule } = get();
+        const updated: StoreScheduleConfig = {
+          ...storeSchedule,
+          mode,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({ storeSchedule: updated });
+
+        syncManager.broadcast({
+          type: 'SCHEDULE_UPDATE',
+          storeSchedule: updated,
+        });
+
+        apiPutSchedule(updated);
+
+        const modeLabels: Record<StoreScheduleMode, string> = {
+          auto: '⚡ Modo Automático (Seguindo horários da semana)',
+          always_open: '🟢 Loja Forçada como ABERTA (Online)',
+          always_closed: '🔴 Loja Forçada como FECHADA (Offline)',
+        };
+        get().showToast(modeLabels[mode] || 'Status da loja atualizado!');
+      },
+
+      resetStoreScheduleToDefault: () => {
+        set({ storeSchedule: INITIAL_STORE_SCHEDULE });
+
+        syncManager.broadcast({
+          type: 'SCHEDULE_UPDATE',
+          storeSchedule: INITIAL_STORE_SCHEDULE,
+        });
+
+        apiPutSchedule(INITIAL_STORE_SCHEDULE);
+        get().showToast('🔄 Horários restaurados para o padrão de fábrica.');
+      },
+
       // --- Pedidos (Kanban) ---
       createOrder: (orderData) => {
         const { cart, orders, myOrderCodes, soundEnabled } = get();
@@ -1016,6 +1102,7 @@ export const useStore = create<StoreState>()(
         cart: state.cart,
         orders: state.orders,
         myOrderCodes: state.myOrderCodes,
+        storeSchedule: state.storeSchedule,
         ingredients: state.ingredients,
         products: state.products,
         stockUpdatedAt: state.stockUpdatedAt,

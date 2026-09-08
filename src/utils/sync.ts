@@ -1,4 +1,4 @@
-import { Ingredient, Order, OrderStatus, PixConfig, Product } from '@/types';
+import { Ingredient, Order, OrderStatus, PixConfig, Product, StoreScheduleConfig } from '@/types';
 import { useStore } from '@/store/useStore';
 
 export type SyncMessage =
@@ -7,7 +7,8 @@ export type SyncMessage =
   | { type: 'ORDER_DELETED'; orderId: string }
   | { type: 'STOCK_UPDATE'; ingredients: Ingredient[]; products: Product[]; stockUpdatedAt?: number }
   | { type: 'USERS_UPDATE'; users: any[] }
-  | { type: 'PIX_UPDATE'; pixConfig: PixConfig };
+  | { type: 'PIX_UPDATE'; pixConfig: PixConfig }
+  | { type: 'SCHEDULE_UPDATE'; storeSchedule: StoreScheduleConfig };
 
 class CrossTabSyncManager {
   private channel: BroadcastChannel | null = null;
@@ -46,6 +47,8 @@ class CrossTabSyncManager {
     try {
       if (msg.type === 'PIX_UPDATE' && msg.pixConfig) {
         useStore.setState({ pixConfig: msg.pixConfig });
+      } else if (msg.type === 'SCHEDULE_UPDATE' && msg.storeSchedule) {
+        useStore.setState({ storeSchedule: msg.storeSchedule });
       } else if (msg.type === 'STOCK_UPDATE' && msg.ingredients && msg.products) {
         useStore.setState({
           ingredients: msg.ingredients,
