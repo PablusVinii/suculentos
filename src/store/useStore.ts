@@ -67,7 +67,7 @@ interface StoreState {
 
   // --- Vista / Navegação ---
   clientActiveTab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos';
-  adminActiveTab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix' | 'schedule';
+  adminActiveTab: 'pos' | 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix' | 'schedule';
   isSideMenuOpen: boolean;
   isCartOpen: boolean;
   isCheckoutOpen: boolean;
@@ -116,10 +116,8 @@ interface StoreState {
   importOrdersFromBackup: (importedOrders: Order[]) => void;
 
   // --- Ações de Navegação e UI ---
-
-  // --- Ações de Navegação e UI ---
   setClientActiveTab: (tab: 'pastel' | 'salgados' | 'bebidas' | 'meus_pedidos') => void;
-  setAdminActiveTab: (tab: 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix' | 'schedule') => void;
+  setAdminActiveTab: (tab: 'pos' | 'kanban' | 'history' | 'stock' | 'stats' | 'users' | 'pix' | 'schedule') => void;
   setIsSideMenuOpen: (open: boolean) => void;
   toggleSideMenu: () => void;
   setIsCartOpen: (open: boolean) => void;
@@ -170,6 +168,18 @@ interface StoreState {
     paymentMethod: Order['paymentMethod'];
     changeFor?: number;
     notes?: string;
+  }) => Order;
+  createAdminOrder: (orderData: {
+    customerName: string;
+    orderType: Order['orderType'];
+    tableNumber?: string;
+    deliveryDetails?: Order['deliveryDetails'];
+    items: CartItem[];
+    totalAmount: number;
+    paymentMethod: Order['paymentMethod'];
+    changeFor?: number;
+    notes?: string;
+    attendantName?: string;
   }) => Order;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   cancelOrder: (orderId: string) => void;
@@ -966,6 +976,59 @@ export const useStore = create<StoreState>()(
           isCartOpen: false,
           isOrderSuccessOpen: true,
           lastPlacedOrder: newOrder,
+        });
+
+        // 1. Sincroniza via BroadcastChannel local (mesmo aparelho)
+        syncManager.broadcast({
+          type: 'NEW_ORDER',
+          order: newOrder,
+        });
+
+        // 2. Sincroniza via Servidor Cloud (para outros aparelhos / Vercel)
+        apiPostOrder(newOrder);
+
+        if (soundEnabled) {
+          playNewOrderChime();
+        }
+
+        return newOrder;
+      },
+
+      createAdminOrder: (orderData) => {
+        const { orders, soundEnabled } = get();
+        const trackingCode = generate6DigitCode();
+
+        let changeAmount: number | undefined = undefined;
+        if (
+          orderData.paymentMethod === 'dinheiro' &&
+          orderData.changeFor &&
+          orderData.changeFor > orderData.totalAmount
+        ) {
+          changeAmount = orderData.changeFor - orderData.totalAmount;
+        }
+
+        const newOrder: Order = {
+          id: `PED-${trackingCode}`,
+          trackingCode: trackingCode,
+          shortCode: trackingCode,
+          createdAt: new Date().toISOString(),
+          customerName: orderData.customerName,
+          orderType: orderData.orderType,
+          tableNumber: orderData.tableNumber,
+          deliveryDetails: orderData.deliveryDetails,
+          items: [...orderData.items],
+          totalAmount: orderData.totalAmount,
+          paymentMethod: orderData.paymentMethod,
+          changeFor: orderData.changeFor,
+          changeAmount,
+          status: 'novo',
+          notes: orderData.notes,
+          attendantName: orderData.attendantName,
+        };
+
+        set({
+          orders: [newOrder, ...orders],
+          incomingOrderAlert: newOrder,
         });
 
         // 1. Sincroniza via BroadcastChannel local (mesmo aparelho)

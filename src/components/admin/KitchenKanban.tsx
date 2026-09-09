@@ -15,6 +15,7 @@ import {
   PlusCircle,
   History,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 
 export const KitchenKanban: React.FC = () => {
@@ -110,6 +111,16 @@ export const KitchenKanban: React.FC = () => {
               className="w-full pl-10 pr-4 py-2 rounded-2xl border border-stone-200 bg-white text-xs outline-none focus:border-amber-500 shadow-2xs"
             />
           </div>
+
+          {/* Botão de Lançar Pedido de Mesa / PDV */}
+          <button
+            onClick={() => useStore.getState().setAdminActiveTab('pos')}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+            title="Abrir PDV para lançar pedido de mesa ou balcão"
+          >
+            <Zap className="w-4 h-4 text-amber-300" />
+            <span>+ Lançar Pedido (PDV)</span>
+          </button>
 
           {/* Botão de Pedido de Teste */}
           <button

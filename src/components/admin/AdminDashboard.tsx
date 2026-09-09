@@ -9,6 +9,7 @@ import { SalesStats } from './SalesStats';
 import { UserManager } from './UserManager';
 import { PixConfigManager } from './PixConfigManager';
 import { ScheduleManager } from './ScheduleManager';
+import { WaiterPosDashboard } from './WaiterPosDashboard';
 import { NewOrderAlertModal } from './NewOrderAlertModal';
 import { ThermalReceiptModal } from './ThermalReceiptModal';
 import { syncManager } from '@/utils/sync';
@@ -34,6 +35,7 @@ import {
   Shield,
   Layers,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -123,6 +125,17 @@ export const AdminDashboard: React.FC = () => {
 
   // Itens de navegação do Menu Sanduíche Lateral
   const navItems = [
+    {
+      id: 'pos' as const,
+      label: 'PDV / Pedidos de Mesa',
+      description: 'Lançar comanda na mesa ou balcão',
+      icon: Zap,
+      badge: (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-orange-400 text-stone-950 animate-pulse">
+          ⚡ NOVO
+        </span>
+      ),
+    },
     {
       id: 'kanban' as const,
       label: 'Kanban da Cozinha',
@@ -294,6 +307,22 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Ações da Direita */}
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Atalho Rápido para Lançar Novo Pedido / PDV */}
+              <button
+                id="admin-header-quick-pos-button"
+                onClick={() => setAdminActiveTab('pos')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm ${
+                  adminActiveTab === 'pos'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 ring-2 ring-amber-400 scale-[1.02]'
+                    : 'bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 hover:text-white hover:scale-102'
+                }`}
+                title="Abrir PDV para lançar pedido de mesa ou balcão"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">+ Novo Pedido (Mesa)</span>
+                <span className="sm:hidden">+ Pedido</span>
+              </button>
+
               {/* Toggle de Alerta Sonoro */}
               <button
                 onClick={toggleSound}
@@ -537,6 +566,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Conteúdo da Aba Ativa */}
       <main className="flex-1 pb-16">
+        {adminActiveTab === 'pos' && <WaiterPosDashboard />}
         {adminActiveTab === 'kanban' && <KitchenKanban />}
         {adminActiveTab === 'schedule' && <ScheduleManager />}
         {adminActiveTab === 'history' && <OrderHistoryAuditory />}

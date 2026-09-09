@@ -69,6 +69,11 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({ order,
               LOCAL: {order.orderType === 'delivery' ? 'ENTREGA (DELIVERY)' : order.orderType.toUpperCase()}
               {order.tableNumber ? ` (${order.tableNumber})` : ''}
             </span>
+            {order.attendantName && (
+              <span className="text-[9px] text-stone-600 block mt-0.5 font-semibold">
+                LANÇADO POR: {order.attendantName.toUpperCase()}
+              </span>
+            )}
           </div>
 
           {/* DADOS DE ENTREGA (MOTOBOY) SE FOR DELIVERY */}

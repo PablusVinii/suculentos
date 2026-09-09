@@ -90,11 +90,21 @@ export const OrderCard: React.FC<OrderCardProps> = ({
           </div>
         </div>
 
-        {/* Nome do Cliente em Destaque */}
+        {/* Nome do Cliente em Destaque & Atendente */}
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-black text-stone-900 leading-tight">
-            {order.customerName}
-          </h3>
+          <div>
+            <h3 className="text-lg font-black text-stone-900 leading-tight">
+              {order.customerName}
+            </h3>
+            {order.attendantName && (
+              <span className="text-[10px] text-stone-500 font-bold flex items-center gap-1 mt-0.5">
+                <span>Atendente:</span>
+                <span className="text-stone-800 bg-stone-100 px-1.5 py-0.2 rounded border border-stone-200">
+                  {order.attendantName}
+                </span>
+              </span>
+            )}
+          </div>
           <span className="text-base font-black text-amber-600 font-display">
             {formatCurrency(order.totalAmount)}
           </span>

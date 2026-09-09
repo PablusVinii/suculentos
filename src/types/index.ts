@@ -85,7 +85,10 @@ export interface Order {
   changeAmount?: number;
   status: OrderStatus;
   notes?: string;
+  attendantName?: string;
 }
+
+export type AdminTab = 'pos' | 'kanban' | 'schedule' | 'history' | 'stock' | 'stats' | 'users' | 'pix';
 
 export type AdminRole = 'Gerente' | 'Cozinha / Pasteleiro' | 'Caixa / Atendimento';
 
